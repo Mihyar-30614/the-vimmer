@@ -166,4 +166,85 @@ function M.open_teach(room, on_begin)
   end, { buffer = buf, nowait = true, silent = true })
 end
 
+local _play_ns = nil
+local _play_tab = nil
+
+function M.open_play(room, game_state, on_win, on_death)
+  local target_lines = vim.split(room.target_text, "\n")
+  local start_lines = vim.split(room.start_text, "\n")
+
+  local target_buf = api.nvim_create_buf(false, true)
+  api.nvim_buf_set_lines(target_buf, 0, -1, false, target_lines)
+  api.nvim_buf_set_option(target_buf, "modifiable", false)
+  api.nvim_buf_set_option(target_buf, "bufhidden", "wipe")
+
+  local play_buf = api.nvim_create_buf(false, true)
+  api.nvim_buf_set_lines(play_buf, 0, -1, false, start_lines)
+  api.nvim_buf_set_option(play_buf, "bufhidden", "wipe")
+
+  vim.cmd("tabnew")
+  _play_tab = api.nvim_get_current_tabpage()
+  local top_win = api.nvim_get_current_win()
+  api.nvim_win_set_buf(top_win, target_buf)
+
+  vim.cmd("split")
+  local play_win = api.nvim_get_current_win()
+  api.nvim_win_set_buf(play_win, play_buf)
+  api.nvim_set_current_win(play_win)
+
+  local function update_hud()
+    local hp_blocks = math.ceil(game_state.hp / 10)
+    local hp_bar = string.rep("█", hp_blocks) .. string.rep("░", 10 - hp_blocks)
+    vim.wo[play_win].statusline = string.format(
+      " HP [%s] %d  |  Streak %d  |  %s",
+      hp_bar, game_state.hp, game_state.streak, room.command
+    )
+  end
+
+  update_hud()
+
+  _play_ns = api.nvim_create_namespace("the-vimmer-keys")
+
+  vim.on_key(function(key)
+    if not api.nvim_win_is_valid(play_win) then
+      vim.on_key(nil, _play_ns)
+      return
+    end
+    if api.nvim_get_current_win() ~= play_win then return end
+
+    game_state:register_key(key)
+    update_hud()
+
+    if game_state:is_dead() then
+      vim.on_key(nil, _play_ns)
+      vim.schedule(function() on_death() end)
+      return
+    end
+
+    vim.schedule(function()
+      if not api.nvim_buf_is_valid(play_buf) then return end
+      local current = table.concat(api.nvim_buf_get_lines(play_buf, 0, -1, false), "\n")
+      local target = table.concat(target_lines, "\n")
+      if vim.trim(current) == vim.trim(target) then
+        vim.on_key(nil, _play_ns)
+        on_win(game_state.hp)
+      end
+    end)
+  end, _play_ns)
+end
+
+function M._close_play()
+  if _play_ns then
+    vim.on_key(nil, _play_ns)
+    _play_ns = nil
+  end
+  if _play_tab and api.nvim_tabpage_is_valid(_play_tab) then
+    pcall(function()
+      local tab = _play_tab
+      _play_tab = nil
+      vim.cmd(api.nvim_tabpage_get_number(tab) .. "tabclose")
+    end)
+  end
+end
+
 return M
