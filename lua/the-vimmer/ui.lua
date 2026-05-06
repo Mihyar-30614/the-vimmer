@@ -1,0 +1,128 @@
+local M = {}
+local api = vim.api
+
+local function pad_row(content, width)
+  local visible = content:gsub("[\xc2-\xdf][\x80-\xbf]", "_")
+    :gsub("[\xe0-\xef][\x80-\xbf][\x80-\xbf]", "_")
+    :gsub("[\xf0-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]", "_")
+  local pad = width - 2 - #visible
+  if pad < 0 then pad = 0 end
+  return "║" .. content .. string.rep(" ", pad) .. "║"
+end
+
+local function make_border(width)
+  return {
+    top = "╔" .. string.rep("═", width - 2) .. "╗",
+    sep = "╠" .. string.rep("═", width - 2) .. "╣",
+    bot = "╚" .. string.rep("═", width - 2) .. "╝",
+    row = function(content) return pad_row(content, width) end,
+  }
+end
+
+local function xp_bar(xp, bar_width)
+  local max_xp = 1000
+  local filled = math.min(math.floor((xp / max_xp) * bar_width), bar_width)
+  return string.rep("▓", filled) .. string.rep("░", bar_width - filled)
+end
+
+local function open_float(lines, width)
+  local height = #lines
+  local buf = api.nvim_create_buf(false, true)
+  api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  api.nvim_buf_set_option(buf, "modifiable", false)
+  api.nvim_buf_set_option(buf, "bufhidden", "wipe")
+
+  local row = math.floor((vim.o.lines - height) / 2)
+  local col = math.floor((vim.o.columns - width) / 2)
+
+  local win = api.nvim_open_win(buf, true, {
+    relative = "editor", row = row, col = col,
+    width = width, height = height,
+    style = "minimal", border = "none",
+  })
+  return buf, win
+end
+
+function M.open_map(progress_data, rooms_by_tier, on_select)
+  local width = 50
+  local b = make_border(width)
+  local bar = xp_bar(progress_data.total_xp, 6)
+  local lines = {}
+  local selectable = {}
+
+  lines[#lines+1] = b.top
+  lines[#lines+1] = b.row(string.format("  THE VIMMER           XP:%-5d %s",
+    progress_data.total_xp, bar))
+  lines[#lines+1] = b.sep
+
+  local tiers = { "beginner", "warrior", "ninja" }
+  local tier_labels = { beginner = "BEGINNER", warrior = "WARRIOR", ninja = "NINJA" }
+  local tier_prereq = { warrior = "complete 80%% of beginner", ninja = "complete 80%% of warrior" }
+  local progress = require("the-vimmer.progress")
+
+  for ti, tier in ipairs(tiers) do
+    local tier_rooms = rooms_by_tier[tier] or {}
+    local total = #tier_rooms
+    local unlocked = progress.is_tier_unlocked(tier, progress_data.cleared, total)
+
+    if not unlocked then
+      lines[#lines+1] = b.row(string.format("  [%s]  locked — %s",
+        tier_labels[tier], tier_prereq[tier] or ""))
+    else
+      lines[#lines+1] = b.row(string.format("  [%s]", tier_labels[tier]))
+      for _, room in ipairs(tier_rooms) do
+        local cleared = progress_data.cleared[room.id]
+        local icon = cleared and "✓" or "►"
+        local label = string.format("   %s  %s", icon, room.title:sub(1, 36))
+        lines[#lines+1] = b.row(label)
+        if not cleared then
+          selectable[#selectable+1] = { line = #lines, room = room }
+        end
+      end
+    end
+    if ti < #tiers then lines[#lines+1] = b.row("") end
+  end
+
+  lines[#lines+1] = b.sep
+  lines[#lines+1] = b.row("  <Enter> play   j/k navigate   <q> quit")
+  lines[#lines+1] = b.bot
+
+  local buf, win = open_float(lines, width)
+  local cur_idx = 1
+
+  if selectable[1] then
+    api.nvim_win_set_cursor(win, { selectable[1].line, 0 })
+  end
+
+  local function map_key(key, fn)
+    vim.keymap.set("n", key, fn, { buffer = buf, nowait = true, silent = true })
+  end
+
+  map_key("j", function()
+    cur_idx = math.min(cur_idx + 1, #selectable)
+    if selectable[cur_idx] then
+      api.nvim_win_set_cursor(win, { selectable[cur_idx].line, 0 })
+    end
+  end)
+
+  map_key("k", function()
+    cur_idx = math.max(cur_idx - 1, 1)
+    if selectable[cur_idx] then
+      api.nvim_win_set_cursor(win, { selectable[cur_idx].line, 0 })
+    end
+  end)
+
+  map_key("<CR>", function()
+    if selectable[cur_idx] then
+      local room = selectable[cur_idx].room
+      api.nvim_win_close(win, true)
+      on_select(room)
+    end
+  end)
+
+  map_key("q", function()
+    api.nvim_win_close(win, true)
+  end)
+end
+
+return M
