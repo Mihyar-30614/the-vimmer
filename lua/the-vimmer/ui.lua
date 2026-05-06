@@ -170,6 +170,7 @@ local _play_ns = nil
 local _play_tab = nil
 
 function M.open_play(room, game_state, on_win, on_death)
+  M._close_play()  -- clean up any previous session
   local target_lines = vim.split(room.target_text, "\n")
   local start_lines = vim.split(room.start_text, "\n")
 
@@ -187,7 +188,7 @@ function M.open_play(room, game_state, on_win, on_death)
   local top_win = api.nvim_get_current_win()
   api.nvim_win_set_buf(top_win, target_buf)
 
-  vim.cmd("split")
+  vim.cmd("belowright split")
   local play_win = api.nvim_get_current_win()
   api.nvim_win_set_buf(play_win, play_buf)
   api.nvim_set_current_win(play_win)
@@ -204,10 +205,11 @@ function M.open_play(room, game_state, on_win, on_death)
   update_hud()
 
   _play_ns = api.nvim_create_namespace("the-vimmer-keys")
+  local ns = _play_ns  -- capture local copy
 
   vim.on_key(function(key)
     if not api.nvim_win_is_valid(play_win) then
-      vim.on_key(nil, _play_ns)
+      vim.on_key(nil, ns)
       return
     end
     if api.nvim_get_current_win() ~= play_win then return end
@@ -216,7 +218,7 @@ function M.open_play(room, game_state, on_win, on_death)
     update_hud()
 
     if game_state:is_dead() then
-      vim.on_key(nil, _play_ns)
+      vim.on_key(nil, ns)
       vim.schedule(function() on_death() end)
       return
     end
@@ -226,11 +228,11 @@ function M.open_play(room, game_state, on_win, on_death)
       local current = table.concat(api.nvim_buf_get_lines(play_buf, 0, -1, false), "\n")
       local target = table.concat(target_lines, "\n")
       if vim.trim(current) == vim.trim(target) then
-        vim.on_key(nil, _play_ns)
+        vim.on_key(nil, ns)
         on_win(game_state.hp)
       end
     end)
-  end, _play_ns)
+  end, ns)
 end
 
 function M._close_play()
