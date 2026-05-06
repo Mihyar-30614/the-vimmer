@@ -130,4 +130,40 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
   end)
 end
 
+function M.open_teach(room, on_begin)
+  local width = 50
+  local b = make_border(width)
+  local lines = {}
+
+  lines[#lines+1] = b.top
+  lines[#lines+1] = b.row("  COMMAND: " .. room.command)
+  lines[#lines+1] = b.row("  " .. room.description)
+  lines[#lines+1] = b.sep
+  lines[#lines+1] = b.row("  BEFORE:  " .. room.before_example)
+  lines[#lines+1] = b.row("  AFTER:   " .. room.after_example)
+  lines[#lines+1] = b.row("")
+  -- wrap usage_tip at 46 chars
+  local tip = room.usage_tip
+  while #tip > 46 do
+    local cut = tip:sub(1, 46):match("^(.+) ")
+    lines[#lines+1] = b.row("  " .. (cut or tip:sub(1, 46)))
+    tip = tip:sub(#(cut or tip:sub(1, 46)) + 2)
+  end
+  if #tip > 0 then lines[#lines+1] = b.row("  " .. tip) end
+  lines[#lines+1] = b.sep
+  lines[#lines+1] = b.row("  <Enter> to begin   <q> back")
+  lines[#lines+1] = b.bot
+
+  local buf, win = open_float(lines, width)
+
+  vim.keymap.set("n", "<CR>", function()
+    api.nvim_win_close(win, true)
+    on_begin()
+  end, { buffer = buf, nowait = true, silent = true })
+
+  vim.keymap.set("n", "q", function()
+    api.nvim_win_close(win, true)
+  end, { buffer = buf, nowait = true, silent = true })
+end
+
 return M
