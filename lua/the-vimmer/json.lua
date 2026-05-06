@@ -30,7 +30,7 @@ end
 function M.decode(s)
   local lua_str = s
     :gsub('"([^"]*)"%s*:', '["%1"]=')
-    :gsub('%bnull', 'nil')
+    :gsub('null', 'nil')
   local chunk = "return " .. lua_str
   local fn, err = loadstring(chunk)
   if not fn then error("JSON decode error: " .. tostring(err)) end
