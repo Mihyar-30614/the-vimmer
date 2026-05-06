@@ -25,8 +25,8 @@ function M.is_tier_unlocked(tier, cleared, total_in_tier)
   if tier == "beginner" then return true end
   local prefix = (tier == "warrior") and "beginner_" or "warrior_"
   local count = 0
-  for k in pairs(cleared) do
-    if k:match("^" .. prefix) then count = count + 1 end
+  for k, v in pairs(cleared) do
+    if v and k:match("^" .. prefix) then count = count + 1 end
   end
   return count >= math.ceil((total_in_tier or 1) * 0.8)
 end

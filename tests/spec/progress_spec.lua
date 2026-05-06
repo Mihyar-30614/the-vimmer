@@ -94,3 +94,17 @@ describe("progress.reset_data", function()
     assert.equals(0, state.streak)
   end)
 end)
+
+describe("progress.reset", function()
+  it("wipes progress and load returns default state", function()
+    local tmp = os.tmpname() .. ".json"
+    local data = { total_xp = 500, cleared = { beginner_hjkl = true }, streak = 4 }
+    progress.save(data, tmp)
+    progress.reset(tmp)
+    local loaded = progress.load(tmp)
+    assert.equals(0, loaded.total_xp)
+    assert.same({}, loaded.cleared)
+    assert.equals(0, loaded.streak)
+    os.remove(tmp)
+  end)
+end)
