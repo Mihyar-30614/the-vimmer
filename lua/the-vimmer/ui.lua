@@ -249,4 +249,39 @@ function M._close_play()
   end
 end
 
+function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_continue)
+  local width = 50
+  local b = make_border(width)
+  local lines = {}
+
+  lines[#lines+1] = b.top
+  lines[#lines+1] = b.row("  ROOM CLEARED!")
+  lines[#lines+1] = b.sep
+  lines[#lines+1] = b.row(string.format("  XP Earned:     +%d", xp_earned))
+  lines[#lines+1] = b.row(string.format("  HP Remaining:  %d / 100", hp_remaining))
+  lines[#lines+1] = b.row(string.format("  Streak:        %d", streak))
+
+  if unlocked_tier then
+    lines[#lines+1] = b.sep
+    lines[#lines+1] = b.row("  NEW TIER UNLOCKED:")
+    lines[#lines+1] = b.row("  " .. unlocked_tier)
+  end
+
+  lines[#lines+1] = b.sep
+  lines[#lines+1] = b.row("  <Enter> next room   <q> map")
+  lines[#lines+1] = b.bot
+
+  local buf, win = open_float(lines, width)
+
+  vim.keymap.set("n", "<CR>", function()
+    api.nvim_win_close(win, true)
+    on_continue(false)
+  end, { buffer = buf, nowait = true, silent = true })
+
+  vim.keymap.set("n", "q", function()
+    api.nvim_win_close(win, true)
+    on_continue(true)
+  end, { buffer = buf, nowait = true, silent = true })
+end
+
 return M
