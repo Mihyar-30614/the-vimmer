@@ -10,6 +10,15 @@ if not rawget(_G, "vim") then
     fn = {
       stdpath = function() return "/tmp" end,
       mkdir = function() end,
+      glob = function(pattern, nosuf, list)
+        local files = {}
+        local handle = io.popen('ls ' .. pattern .. ' 2>/dev/null')
+        if handle then
+          for line in handle:lines() do files[#files+1] = line end
+          handle:close()
+        end
+        return list and files or table.concat(files, "\n")
+      end,
     },
     tbl_deep_extend = function(_, base, override)
       local result = {}
