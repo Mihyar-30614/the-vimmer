@@ -1,5 +1,6 @@
 local M = {}
 local api = vim.api
+local progress = require("the-vimmer.progress")
 
 local function pad_row(content, width)
   local visible = content:gsub("[\xc2-\xdf][\x80-\xbf]", "_")
@@ -32,8 +33,8 @@ local function open_float(lines, width)
   api.nvim_buf_set_option(buf, "modifiable", false)
   api.nvim_buf_set_option(buf, "bufhidden", "wipe")
 
-  local row = math.floor((vim.o.lines - height) / 2)
-  local col = math.floor((vim.o.columns - width) / 2)
+  local row = math.max(0, math.floor((vim.o.lines - height) / 2))
+  local col = math.max(0, math.floor((vim.o.columns - width) / 2))
 
   local win = api.nvim_open_win(buf, true, {
     relative = "editor", row = row, col = col,
@@ -44,6 +45,10 @@ local function open_float(lines, width)
 end
 
 function M.open_map(progress_data, rooms_by_tier, on_select)
+  progress_data = progress_data or {}
+  progress_data.total_xp = progress_data.total_xp or 0
+  progress_data.cleared = progress_data.cleared or {}
+
   local width = 50
   local b = make_border(width)
   local bar = xp_bar(progress_data.total_xp, 6)
@@ -57,13 +62,13 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
 
   local tiers = { "beginner", "warrior", "ninja" }
   local tier_labels = { beginner = "BEGINNER", warrior = "WARRIOR", ninja = "NINJA" }
-  local tier_prereq = { warrior = "complete 80%% of beginner", ninja = "complete 80%% of warrior" }
-  local progress = require("the-vimmer.progress")
+  local tier_prereq = { warrior = "complete 80% of beginner", ninja = "complete 80% of warrior" }
 
   for ti, tier in ipairs(tiers) do
     local tier_rooms = rooms_by_tier[tier] or {}
-    local total = #tier_rooms
-    local unlocked = progress.is_tier_unlocked(tier, progress_data.cleared, total)
+    local prereq_tier = ({ warrior = "beginner", ninja = "warrior" })[tier]
+    local total_prereq = prereq_tier and #(rooms_by_tier[prereq_tier] or {}) or 0
+    local unlocked = progress.is_tier_unlocked(tier, progress_data.cleared, total_prereq)
 
     if not unlocked then
       lines[#lines+1] = b.row(string.format("  [%s]  locked — %s",
