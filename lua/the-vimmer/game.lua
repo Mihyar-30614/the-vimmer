@@ -15,12 +15,14 @@ function M.new()
   end
 
   function g:begin_play()
+    if not self.current_room then return end
     self.hp = 100
     self.state = "playing"
   end
 
   function g:register_key(key)
     if self.state ~= "playing" then return end
+    if not self.current_room then return end
     local optimal = self.current_room.optimal_keystrokes or {}
     for _, k in ipairs(optimal) do
       if k == key then return end
@@ -32,11 +34,12 @@ function M.new()
     return self.hp <= 0
   end
 
-  function g:complete_room(remaining_hp)
+  function g:complete_room()
+    if not self.current_room then return end
     local progress = require("the-vimmer.progress")
     self.last_xp = progress.calculate_xp(
       self.current_room.base_xp,
-      remaining_hp,
+      self.hp,
       self.streak
     )
     self.state = "results"

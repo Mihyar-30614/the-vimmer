@@ -28,12 +28,12 @@ describe("game state machine", function()
   end)
 
   it("playing -> results on complete_room", function()
-    g:start_room(make_room()); g:begin_play(); g:complete_room(100)
+    g:start_room(make_room()); g:begin_play(); g:complete_room()
     assert.equals("results", g.state)
   end)
 
   it("results -> idle on dismiss_results", function()
-    g:start_room(make_room()); g:begin_play(); g:complete_room(100)
+    g:start_room(make_room()); g:begin_play(); g:complete_room()
     g:dismiss_results()
     assert.equals("idle", g.state)
   end)
@@ -75,12 +75,21 @@ describe("game HP tracking", function()
     g:register_key("x")
     assert.is_false(g:is_dead())
   end)
+
+  it("register_key is a no-op outside playing state", function()
+    -- Switch to teaching state and verify HP is not drained
+    g:start_room(make_room())   -- resets state to teaching
+    g.state = "teaching"
+    g.hp = 100
+    g:register_key("x")
+    assert.equals(100, g.hp)
+  end)
 end)
 
 describe("game streak", function()
   it("increments streak on dismiss_results", function()
     local g = game.new()
-    g:start_room(make_room()); g:begin_play(); g:complete_room(100)
+    g:start_room(make_room()); g:begin_play(); g:complete_room()
     g:dismiss_results()
     assert.equals(1, g.streak)
   end)
@@ -105,8 +114,21 @@ describe("game.last_xp", function()
   it("is set after complete_room", function()
     local g = game.new()
     g:start_room(make_room()); g:begin_play()
-    g:complete_room(100)
+    g:complete_room()
     -- calculate_xp(50, 100, 0) = base(50) + hp_bonus(floor(100/100*50)=50) = 100
     assert.equals(100, g.last_xp)
+  end)
+
+  it("HP drained before complete_room affects last_xp", function()
+    local g = game.new()
+    g:start_room(make_room()); g:begin_play()
+    -- 5 non-optimal keystrokes * 5 HP each = 25 HP drained, 75 HP remaining
+    for _ = 1, 5 do g:register_key("x") end
+    assert.equals(75, g.hp)
+    g:complete_room()
+    -- calculate_xp(50, 75, 0) = base(50) + hp_bonus(floor(75/100*50)=37) = 87
+    local progress = require("the-vimmer.progress")
+    local expected = progress.calculate_xp(50, 75, 0)
+    assert.equals(expected, g.last_xp)
   end)
 end)
