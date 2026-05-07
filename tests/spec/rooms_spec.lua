@@ -60,6 +60,38 @@ describe("rooms.get_room", function()
   end)
 end)
 
+describe("rooms.validate boss rooms", function()
+  local valid_boss = {
+    id = "test_boss", tier = "beginner", is_boss = true,
+    command = "hjkl", title = "Boss", description = "Trial",
+    usage_tip = "tip", base_xp = 300, time_limit = 120,
+    phases = {
+      { start_text = "a", target_text = "b", optimal_keystrokes = {"x"}, tip = "p1" },
+      { start_text = "c", target_text = "d", optimal_keystrokes = {"y"}, tip = "p2" },
+    },
+  }
+
+  it("accepts a valid boss room", function()
+    assert.is_true(rooms.validate(valid_boss))
+  end)
+
+  it("rejects boss room missing phases", function()
+    local r = {}; for k, v in pairs(valid_boss) do r[k] = v end; r.phases = nil
+    assert.is_false(rooms.validate(r))
+  end)
+
+  it("rejects boss room missing time_limit", function()
+    local r = {}; for k, v in pairs(valid_boss) do r[k] = v end; r.time_limit = nil
+    assert.is_false(rooms.validate(r))
+  end)
+
+  it("rejects boss room with phase missing target_text", function()
+    local r = {}; for k, v in pairs(valid_boss) do r[k] = v end
+    r.phases = { { start_text = "a", optimal_keystrokes = {"x"}, tip = "p1" } }
+    assert.is_false(rooms.validate(r))
+  end)
+end)
+
 describe("rooms.all_tiers", function()
   it("returns three tiers in order", function()
     local tiers = rooms.all_tiers()

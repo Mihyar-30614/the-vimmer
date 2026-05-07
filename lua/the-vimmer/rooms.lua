@@ -8,7 +8,24 @@ local REQUIRED_FIELDS = {
   "start_text", "target_text", "base_xp", "optimal_keystrokes",
 }
 
+local BOSS_REQUIRED = {
+  "id", "tier", "command", "title", "description",
+  "usage_tip", "base_xp", "phases", "time_limit",
+}
+
 function M.validate(room)
+  if room.is_boss then
+    for _, field in ipairs(BOSS_REQUIRED) do
+      if room[field] == nil then return false end
+    end
+    if type(room.phases) ~= "table" or #room.phases < 1 then return false end
+    for _, phase in ipairs(room.phases) do
+      if not phase.start_text or not phase.target_text or not phase.optimal_keystrokes then
+        return false
+      end
+    end
+    return true
+  end
   for _, field in ipairs(REQUIRED_FIELDS) do
     if room[field] == nil then return false end
   end
