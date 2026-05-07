@@ -49,20 +49,31 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
   progress_data.total_xp = progress_data.total_xp or 0
   progress_data.cleared = progress_data.cleared or {}
 
-  local width = 50
+  local width = 60
   local b = make_border(width)
   local bar = xp_bar(progress_data.total_xp, 6)
   local lines = {}
+  local hls = {}
   local selectable = {}
 
-  lines[#lines+1] = b.top
-  lines[#lines+1] = b.row(string.format("  THE VIMMER           XP:%-5d %s",
-    progress_data.total_xp, bar))
-  lines[#lines+1] = b.sep
+  local function add(content, group)
+    lines[#lines+1] = content
+    if group then hls[#hls+1] = { group, #lines - 1, 0, -1 } end
+  end
 
-  local tiers = { "beginner", "warrior", "ninja" }
+  local tier_colors = {
+    beginner = "VimmerTierBeginner",
+    warrior  = "VimmerTierWarrior",
+    ninja    = "VimmerTierNinja",
+  }
   local tier_labels = { beginner = "BEGINNER", warrior = "WARRIOR", ninja = "NINJA" }
   local tier_prereq = { warrior = "complete 80% of beginner", ninja = "complete 80% of warrior" }
+  local tiers = { "beginner", "warrior", "ninja" }
+
+  add(b.top)
+  add(b.row(string.format("  THE VIMMER                     XP:%-5d %s",
+    progress_data.total_xp, bar)), "VimmerTitle")
+  add(b.sep)
 
   for ti, tier in ipairs(tiers) do
     local tier_rooms = rooms_by_tier[tier] or {}
@@ -71,33 +82,45 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
     local unlocked = progress.is_tier_unlocked(tier, progress_data.cleared, total_prereq)
 
     if not unlocked then
-      lines[#lines+1] = b.row(string.format("  [%s]  locked — %s",
-        tier_labels[tier], tier_prereq[tier] or ""))
+      add(b.row(string.format("  [%s]  locked — %s",
+        tier_labels[tier], tier_prereq[tier] or "")), "VimmerLocked")
     else
-      lines[#lines+1] = b.row(string.format("  [%s]", tier_labels[tier]))
+      add(b.row(string.format("  [%s]", tier_labels[tier])), tier_colors[tier])
       for _, room in ipairs(tier_rooms) do
         local cleared = progress_data.cleared[room.id]
         local icon = cleared and "✓" or "►"
-        local label = string.format("   %s  %s", icon, room.title:sub(1, 36))
-        lines[#lines+1] = b.row(label)
-        if not cleared then
+        local label = string.format("   %s  %s", icon, room.title:sub(1, 46))
+        if cleared then
+          add(b.row(label), "VimmerCleared")
+        else
+          add(b.row(label))
           selectable[#selectable+1] = { line = #lines, room = room }
         end
       end
     end
-    if ti < #tiers then lines[#lines+1] = b.row("") end
+    if ti < #tiers then add(b.row("")) end
   end
 
-  lines[#lines+1] = b.sep
-  lines[#lines+1] = b.row("  <Enter> play   j/k navigate   <q> quit")
-  lines[#lines+1] = b.bot
+  add(b.sep)
+  add(b.row("  <Enter> play   j/k navigate   <q> quit"))
+  add(b.bot)
 
   local buf, win = open_float(lines, width)
+  apply_hl(buf, hls)
+
+  local _sel_ns = api.nvim_create_namespace("the-vimmer-sel")
   local cur_idx = 1
 
-  if selectable[1] then
-    api.nvim_win_set_cursor(win, { selectable[1].line, 0 })
+  local function update_selection()
+    api.nvim_buf_clear_namespace(buf, _sel_ns, 0, -1)
+    if selectable[cur_idx] then
+      api.nvim_buf_add_highlight(buf, _sel_ns, "VimmerSelected",
+        selectable[cur_idx].line - 1, 0, -1)
+      api.nvim_win_set_cursor(win, { selectable[cur_idx].line, 0 })
+    end
   end
+
+  update_selection()
 
   local function map_key(key, fn)
     vim.keymap.set("n", key, fn, { buffer = buf, nowait = true, silent = true })
@@ -105,16 +128,12 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
 
   map_key("j", function()
     cur_idx = math.min(cur_idx + 1, #selectable)
-    if selectable[cur_idx] then
-      api.nvim_win_set_cursor(win, { selectable[cur_idx].line, 0 })
-    end
+    update_selection()
   end)
 
   map_key("k", function()
     cur_idx = math.max(cur_idx - 1, 1)
-    if selectable[cur_idx] then
-      api.nvim_win_set_cursor(win, { selectable[cur_idx].line, 0 })
-    end
+    update_selection()
   end)
 
   map_key("<CR>", function()
