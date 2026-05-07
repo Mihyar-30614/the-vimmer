@@ -377,9 +377,18 @@ function M.open_play(room, game_state, on_win, on_death)
 
     lines[#lines+1] = string.format(" Streak  %d", game_state.streak)
 
-    if game_state.combo_mult > 1 then
-      lines[#lines+1] = string.format(" Combo  x%d", game_state.combo_mult)
-      hls[#hls+1] = { "VimmerPhase", #lines - 1, 1, -1 }
+    local combo_grp = hl.combo_group(game_state.combo)
+    if combo_grp then
+      local combo_text
+      if game_state.combo >= 20 then
+        combo_text = " 💀 UNSTOPPABLE"
+      elseif game_state.combo >= 10 then
+        combo_text = " 🔥 ON FIRE!"
+      else
+        combo_text = string.format(" ⚡ x%d COMBO!", game_state.combo_mult)
+      end
+      lines[#lines+1] = combo_text
+      hls[#hls+1] = { combo_grp, #lines - 1, 1, -1 }
     end
 
     local pu_str = ""
