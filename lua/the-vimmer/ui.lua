@@ -375,4 +375,38 @@ function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_conti
   vim.defer_fn(reveal_next, 80)
 end
 
+function M.open_death(room, on_retry, on_map)
+  local width = 40
+  local b = make_border(width)
+  local lines = {}
+  local hls = {}
+
+  local function add(content, group)
+    lines[#lines+1] = content
+    if group then hls[#hls+1] = { group, #lines - 1, 0, -1 } end
+  end
+
+  add(b.top)
+  add(b.row("        YOU DIED"), "VimmerDeath")
+  add(b.sep)
+  add(b.row("  HP reached zero"))
+  add(b.row("  Streak lost"))
+  add(b.sep)
+  add(b.row("  <Enter> retry   <q> map"))
+  add(b.bot)
+
+  local buf, win = open_float(lines, width)
+  apply_hl(buf, hls)
+
+  vim.keymap.set("n", "<CR>", function()
+    api.nvim_win_close(win, true)
+    on_retry()
+  end, { buffer = buf, nowait = true, silent = true })
+
+  vim.keymap.set("n", "q", function()
+    api.nvim_win_close(win, true)
+    on_map()
+  end, { buffer = buf, nowait = true, silent = true })
+end
+
 return M
