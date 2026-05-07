@@ -286,6 +286,8 @@ function M.open_play(room, game_state, on_win, on_death)
   M._close_play()
   local hl = require("the-vimmer.highlights")
   local initial_time = room.time_limit
+  local HUD_W = 20
+  local _hud_ns = api.nvim_create_namespace("the-vimmer-hud")
 
   local target_buf = api.nvim_create_buf(false, true)
   api.nvim_buf_set_option(target_buf, "bufhidden", "wipe")
@@ -293,9 +295,29 @@ function M.open_play(room, game_state, on_win, on_death)
   local play_buf = api.nvim_create_buf(false, true)
   api.nvim_buf_set_option(play_buf, "bufhidden", "wipe")
 
+  local hud_buf = api.nvim_create_buf(false, true)
+  api.nvim_buf_set_option(hud_buf, "bufhidden", "wipe")
+  api.nvim_buf_set_option(hud_buf, "modifiable", false)
+
   vim.cmd("tabnew")
   _play_tab = api.nvim_get_current_tabpage()
-  local top_win = api.nvim_get_current_win()
+  local left_win = api.nvim_get_current_win()
+
+  vim.cmd("botright vsplit")
+  local hud_win = api.nvim_get_current_win()
+  api.nvim_win_set_buf(hud_win, hud_buf)
+  api.nvim_win_set_width(hud_win, HUD_W)
+  vim.wo[hud_win].winfixwidth    = true
+  vim.wo[hud_win].number         = false
+  vim.wo[hud_win].relativenumber = false
+  vim.wo[hud_win].signcolumn     = "no"
+  vim.wo[hud_win].wrap           = false
+  vim.wo[hud_win].cursorline     = false
+  vim.wo[hud_win].statusline     = " "
+  vim.wo[hud_win].winbar         = "%#VimmerTitle# ── STATUS ──%*"
+
+  api.nvim_set_current_win(left_win)
+  local top_win = left_win
   api.nvim_win_set_buf(top_win, target_buf)
 
   vim.cmd("belowright split")
@@ -306,38 +328,64 @@ function M.open_play(room, game_state, on_win, on_death)
   vim.wo[top_win].winbar  = "%#VimmerCleared# ── TARGET ──%*"
   vim.wo[play_win].winbar = "%#VimmerTierWarrior# ── EDIT HERE ──%*"
 
-  local function pu_icons()
-    local icons = { hp_restore = "♥", freeze_timer = "❄", double_xp = "★" }
-    local s = ""
-    for _, pu in ipairs(game_state.power_ups) do
-      s = s .. "[" .. (icons[pu.type] or "?") .. "]"
-    end
-    return s ~= "" and ("  " .. s) or ""
-  end
+  local pu_icons_map = { hp_restore = "♥", freeze_timer = "❄", double_xp = "★" }
 
   local function update_hud()
+    if not api.nvim_buf_is_valid(hud_buf) then return end
     local hp_blocks = math.ceil(game_state.hp / 10)
     local hp_bar = string.rep("█", hp_blocks) .. string.rep("░", 10 - hp_blocks)
     local hp_grp = hl.hp_group(game_state.hp)
 
-    local timer_str = ""
+    local lines = { "", " HP", " " .. hp_bar, string.format(" %d / 100", game_state.hp), "" }
+    local hls = {
+      { hp_grp, 2, 1, -1 },
+      { hp_grp, 3, 1, -1 },
+    }
+
     if game_state.timer_remaining then
       local mins = math.floor(game_state.timer_remaining / 60)
       local secs = game_state.timer_remaining % 60
       local t_grp = hl.timer_group(game_state.timer_remaining, initial_time)
-      timer_str = string.format("  %%#%s#⏱ %d:%02d%%*", t_grp, mins, secs)
+      lines[#lines+1] = string.format(" ⏱  %d:%02d", mins, secs)
+      hls[#hls+1] = { t_grp, #lines - 1, 1, -1 }
+      lines[#lines+1] = ""
     end
 
-    local mult_str = game_state.combo_mult > 1
-      and string.format("  x%d", game_state.combo_mult) or ""
+    lines[#lines+1] = string.format(" Streak  %d", game_state.streak)
 
-    vim.wo[play_win].statusline = string.format(
-      " %%#%s#HP [%s] %d%%*%s%s  Streak %d  |  %s%s",
-      hp_grp, hp_bar, game_state.hp,
-      timer_str, mult_str,
-      game_state.streak, room.command,
-      pu_icons()
-    )
+    if game_state.combo_mult > 1 then
+      lines[#lines+1] = string.format(" Combo  x%d", game_state.combo_mult)
+      hls[#hls+1] = { "VimmerPhase", #lines - 1, 1, -1 }
+    end
+
+    local pu_str = ""
+    for _, pu in ipairs(game_state.power_ups) do
+      pu_str = pu_str .. (pu_icons_map[pu.type] or "?")
+    end
+    if pu_str ~= "" then
+      lines[#lines+1] = ""
+      lines[#lines+1] = " " .. pu_str
+    end
+
+    lines[#lines+1] = ""
+    lines[#lines+1] = " " .. string.rep("─", HUD_W - 2)
+    lines[#lines+1] = ""
+
+    local cmd = " " .. room.command
+    local max_w = HUD_W - 1
+    while #cmd > max_w do
+      lines[#lines+1] = cmd:sub(1, max_w)
+      cmd = " " .. cmd:sub(max_w + 1)
+    end
+    lines[#lines+1] = cmd
+
+    api.nvim_buf_set_option(hud_buf, "modifiable", true)
+    api.nvim_buf_set_lines(hud_buf, 0, -1, false, lines)
+    api.nvim_buf_clear_namespace(hud_buf, _hud_ns, 0, -1)
+    for _, h in ipairs(hls) do
+      api.nvim_buf_add_highlight(hud_buf, _hud_ns, h[1], h[2], h[3], h[4])
+    end
+    api.nvim_buf_set_option(hud_buf, "modifiable", false)
   end
 
   local function start_timer()
@@ -386,10 +434,12 @@ function M.open_play(room, game_state, on_win, on_death)
 
       vim.schedule(function()
         if not api.nvim_buf_is_valid(play_buf) then return end
+        if _play_ns ~= ns then return end
         local current = table.concat(api.nvim_buf_get_lines(play_buf, 0, -1, false), "\n")
         local target = table.concat(target_lines, "\n")
         if vim.trim(current) == vim.trim(target) then
           vim.on_key(nil, ns)
+          _play_ns = nil
           vim.cmd("stopinsert")
           local is_last = not room.is_boss or game_state.boss_phase >= game_state.boss_total_phases
           if is_last then
@@ -397,8 +447,9 @@ function M.open_play(room, game_state, on_win, on_death)
           else
             flash(play_buf, "VimmerWin", function()
               game_state:advance_boss_phase()
-              M._show_phase_banner(play_win, game_state.boss_phase, function()
-                start_phase(room.phases[game_state.boss_phase])
+              local next_phase = game_state.boss_phase
+              M._show_phase_banner(play_win, next_phase, function()
+                start_phase(room.phases[next_phase])
               end)
             end)
           end
