@@ -32,7 +32,7 @@ Die (HP → 0): room restarts, streak resets.
 
 ```lua
 {
-  "mihyar/the-vimmer",
+  "mihyar-30614/the-vimmer",
   config = function()
     require("the-vimmer").setup()
   end,
@@ -43,7 +43,7 @@ Die (HP → 0): room restarts, streak resets.
 
 ```lua
 use {
-  "mihyar/the-vimmer",
+  "mihyar-30614/the-vimmer",
   config = function()
     require("the-vimmer").setup()
   end,
@@ -55,7 +55,7 @@ use {
 Clone into your Neovim packages directory:
 
 ```bash
-git clone https://github.com/mihyar/the-vimmer \
+git clone https://github.com/mihyar-30614/the-vimmer \
   ~/.local/share/nvim/site/pack/plugins/start/the-vimmer
 ```
 
