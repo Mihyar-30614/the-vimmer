@@ -43,6 +43,11 @@ function M.setup()
   hl(0, "VimmerTimerDanger",  { bold = true, fg = "#ff5555" })
   hl(0, "VimmerBoss",         { bold = true, fg = "#ff79c6" })
   hl(0, "VimmerPhase",        { bold = true, bg = "#44475a", fg = "#ff79c6" })
+  hl(0, "VimmerDamage",       { bg = "#5c1010", fg = "#ff8080" })
+  hl(0, "VimmerRegen",        { bg = "#0d3b1a", fg = "#80ff99" })
+  hl(0, "VimmerCrit",         { bg = "#5c4a00", fg = "#ffd700" })
+  hl(0, "VimmerComboFire",    { bold = true,    fg = "#ff8c00" })
+  hl(0, "VimmerComboCrit",    { bold = true,    fg = "#ff00cc" })
 end
 
 return M
