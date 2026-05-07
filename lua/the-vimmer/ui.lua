@@ -423,7 +423,9 @@ function M.open_play(room, game_state, on_win, on_death)
       update_hud()
       if dead then
         if _timer_handle then _timer_handle:stop() end
-        flash(play_buf, "VimmerDeath", on_death)
+        multi_flash(play_buf, {
+          { "VimmerDamage", 200 }, { nil, 100 }, { "VimmerDeath", 200 }
+        }, on_death)
       end
     end))
   end
@@ -451,7 +453,11 @@ function M.open_play(room, game_state, on_win, on_death)
 
       if game_state:is_dead() then
         vim.on_key(nil, ns)
-        vim.schedule(function() flash(play_buf, "VimmerDeath", on_death) end)
+        vim.schedule(function()
+          multi_flash(play_buf, {
+            { "VimmerDamage", 200 }, { nil, 100 }, { "VimmerDeath", 200 }
+          }, on_death)
+        end)
         return
       end
 
@@ -466,9 +472,13 @@ function M.open_play(room, game_state, on_win, on_death)
           vim.cmd("stopinsert")
           local is_last = not room.is_boss or game_state.boss_phase >= game_state.boss_total_phases
           if is_last then
-            flash(play_buf, "VimmerWin", function() on_win() end)
+            multi_flash(play_buf, {
+              { "VimmerWin", 150 }, { "VimmerCrit", 150 }, { "VimmerWin", 150 }
+            }, on_win)
           else
-            flash(play_buf, "VimmerWin", function()
+            multi_flash(play_buf, {
+              { "VimmerWin", 150 }, { "VimmerCrit", 150 }, { "VimmerWin", 150 }
+            }, function()
               game_state:advance_boss_phase()
               local next_phase = game_state.boss_phase
               M._show_phase_banner(play_win, next_phase, function()
