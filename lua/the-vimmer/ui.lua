@@ -26,6 +26,27 @@ local function xp_bar(xp, bar_width)
   return string.rep("▓", filled) .. string.rep("░", bar_width - filled)
 end
 
+local _flash_ns = api.nvim_create_namespace("the-vimmer-flash")
+
+local function apply_hl(buf, highlights)
+  for _, h in ipairs(highlights) do
+    api.nvim_buf_add_highlight(buf, 0, h[1], h[2], h[3], h[4])
+  end
+end
+
+local function flash(buf, group, callback)
+  local n = api.nvim_buf_line_count(buf)
+  for i = 0, n - 1 do
+    api.nvim_buf_add_highlight(buf, _flash_ns, group, i, 0, -1)
+  end
+  vim.defer_fn(function()
+    if api.nvim_buf_is_valid(buf) then
+      api.nvim_buf_clear_namespace(buf, _flash_ns, 0, -1)
+    end
+    callback()
+  end, 100)
+end
+
 local function open_float(lines, width)
   local height = #lines
   local buf = api.nvim_create_buf(false, true)
@@ -200,27 +221,6 @@ function M.open_teach(room, on_begin)
   vim.keymap.set("n", "q", function()
     api.nvim_win_close(win, true)
   end, { buffer = buf, nowait = true, silent = true })
-end
-
-local _flash_ns = api.nvim_create_namespace("the-vimmer-flash")
-
-local function apply_hl(buf, highlights)
-  for _, h in ipairs(highlights) do
-    api.nvim_buf_add_highlight(buf, 0, h[1], h[2], h[3], h[4])
-  end
-end
-
-local function flash(buf, group, callback)
-  local n = api.nvim_buf_line_count(buf)
-  for i = 0, n - 1 do
-    api.nvim_buf_add_highlight(buf, _flash_ns, group, i, 0, -1)
-  end
-  vim.defer_fn(function()
-    if api.nvim_buf_is_valid(buf) then
-      api.nvim_buf_clear_namespace(buf, _flash_ns, 0, -1)
-    end
-    callback()
-  end, 100)
 end
 
 local _play_ns = nil
