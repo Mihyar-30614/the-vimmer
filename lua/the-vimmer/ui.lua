@@ -150,30 +150,47 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
 end
 
 function M.open_teach(room, on_begin)
-  local width = 50
+  local width = 60
   local b = make_border(width)
   local lines = {}
+  local hls = {}
 
-  lines[#lines+1] = b.top
-  lines[#lines+1] = b.row("  COMMAND: " .. room.command:gsub("\n", " ↵ "))
-  lines[#lines+1] = b.row("  " .. room.description:gsub("\n", " ↵ "))
-  lines[#lines+1] = b.sep
-  lines[#lines+1] = b.row("  BEFORE:  " .. room.before_example:gsub("\n", " ↵ "))
-  lines[#lines+1] = b.row("  AFTER:   " .. room.after_example:gsub("\n", " ↵ "))
-  lines[#lines+1] = b.row("")
-  -- wrap usage_tip at 46 chars
-  local tip = room.usage_tip
-  while #tip > 46 do
-    local cut = tip:sub(1, 46):match("^(.+) ")
-    lines[#lines+1] = b.row("  " .. (cut or tip:sub(1, 46)))
-    tip = tip:sub(#(cut or tip:sub(1, 46)) + 2)
+  local function add(content, group)
+    lines[#lines+1] = content
+    if group then hls[#hls+1] = { group, #lines - 1, 0, -1 } end
   end
-  if #tip > 0 then lines[#lines+1] = b.row("  " .. tip) end
-  lines[#lines+1] = b.sep
-  lines[#lines+1] = b.row("  <Enter> to begin   <q> back")
-  lines[#lines+1] = b.bot
+
+  add(b.top)
+  add(b.row("  COMMAND: " .. room.command:gsub("\n", " ↵ ")), "VimmerCommand")
+  add(b.row("  " .. room.description:gsub("\n", " ↵ ")), "VimmerTitle")
+  add(b.sep)
+  add(b.row("  BEFORE:  " .. room.before_example:gsub("\n", " ↵ ")), "VimmerLocked")
+  add(b.row("  AFTER:   " .. room.after_example:gsub("\n", " ↵ ")), "VimmerCleared")
+  add(b.row(""))
+  local tip = room.usage_tip
+  while #tip > 56 do
+    local cut = tip:sub(1, 56):match("^(.+) ")
+    add(b.row("  " .. (cut or tip:sub(1, 56))))
+    tip = tip:sub(#(cut or tip:sub(1, 56)) + 2)
+  end
+  if #tip > 0 then add(b.row("  " .. tip)) end
+  add(b.sep)
+  add(b.row("  <Enter> to begin   <q> back"))
+  add(b.bot)
 
   local buf, win = open_float(lines, width)
+  apply_hl(buf, hls)
+
+  -- highlight | cursor markers in BEFORE (line 4) and AFTER (line 5), 0-indexed
+  for _, li in ipairs({ 4, 5 }) do
+    local row = lines[li + 1]
+    if row then
+      local pipe = row:find("|", 1, true)
+      if pipe then
+        api.nvim_buf_add_highlight(buf, 0, "VimmerExample", li, pipe - 1, pipe)
+      end
+    end
+  end
 
   vim.keymap.set("n", "<CR>", function()
     api.nvim_win_close(win, true)
