@@ -6,6 +6,14 @@ function M.hp_group(hp)
   else return "VimmerHP_low" end
 end
 
+function M.timer_group(remaining, total)
+  if not total or total == 0 then return "VimmerTimerOk" end
+  local pct = remaining / total
+  if pct > 0.5 then return "VimmerTimerOk"
+  elseif pct > 0.25 then return "VimmerTimerWarn"
+  else return "VimmerTimerDanger" end
+end
+
 function M.setup()
   local hl = vim.api.nvim_set_hl
   hl(0, "VimmerTitle",        { bold = true, fg = "#ffffff" })
@@ -23,6 +31,11 @@ function M.setup()
   hl(0, "VimmerDeath",        { bold = true, fg = "#ff5555" })
   hl(0, "VimmerCommand",      { bold = true, fg = "#f1fa8c" })
   hl(0, "VimmerExample",      { fg = "#8be9fd" })
+  hl(0, "VimmerTimerOk",      { bold = true, fg = "#50fa7b" })
+  hl(0, "VimmerTimerWarn",    { bold = true, fg = "#ffb86c" })
+  hl(0, "VimmerTimerDanger",  { bold = true, fg = "#ff5555" })
+  hl(0, "VimmerBoss",         { bold = true, fg = "#ff79c6" })
+  hl(0, "VimmerPhase",        { bold = true, bg = "#44475a", fg = "#ff79c6" })
 end
 
 return M
