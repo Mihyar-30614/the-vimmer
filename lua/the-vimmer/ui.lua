@@ -311,38 +311,68 @@ function M._close_play()
 end
 
 function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_continue)
-  local width = 50
+  local width = 60
   local b = make_border(width)
-  local lines = {}
+  local all_lines = {}
+  local hls = {}
 
-  lines[#lines+1] = b.top
-  lines[#lines+1] = b.row("  ROOM CLEARED!")
-  lines[#lines+1] = b.sep
-  lines[#lines+1] = b.row(string.format("  XP Earned:     +%d", xp_earned))
-  lines[#lines+1] = b.row(string.format("  HP Remaining:  %d / 100", hp_remaining))
-  lines[#lines+1] = b.row(string.format("  Streak:        %d", streak))
-
-  if unlocked_tier then
-    lines[#lines+1] = b.sep
-    lines[#lines+1] = b.row("  NEW TIER UNLOCKED:")
-    lines[#lines+1] = b.row("  " .. unlocked_tier)
+  local function add(content, group)
+    all_lines[#all_lines+1] = content
+    if group then hls[#hls+1] = { group, #all_lines - 1, 0, -1 } end
   end
 
-  lines[#lines+1] = b.sep
-  lines[#lines+1] = b.row("  <Enter> next room   <q> map")
-  lines[#lines+1] = b.bot
+  add(b.top)
+  add(b.row("  ROOM CLEARED!"), "VimmerWin")
+  add(b.sep)
+  add(b.row(string.format("  XP Earned:     +%d", xp_earned)), "VimmerXP")
+  add(b.row(string.format("  HP Remaining:  %d / 100", hp_remaining)), "VimmerTitle")
+  add(b.row(string.format("  Streak:        %d", streak)), "VimmerTierWarrior")
 
-  local buf, win = open_float(lines, width)
+  if unlocked_tier then
+    local tier_name = unlocked_tier:lower()
+    local tier_grp = ({ warrior = "VimmerTierWarrior", ninja = "VimmerTierNinja" })[tier_name]
+      or "VimmerTierBeginner"
+    add(b.sep)
+    add(b.row("  NEW TIER UNLOCKED:"), "VimmerTitle")
+    add(b.row("  " .. unlocked_tier), tier_grp)
+  end
 
-  vim.keymap.set("n", "<CR>", function()
-    api.nvim_win_close(win, true)
-    on_continue(false)
-  end, { buffer = buf, nowait = true, silent = true })
+  add(b.sep)
+  add(b.row("  <Enter> next room   <q> map"))
+  add(b.bot)
 
-  vim.keymap.set("n", "q", function()
-    api.nvim_win_close(win, true)
-    on_continue(true)
-  end, { buffer = buf, nowait = true, silent = true })
+  local empty = {}
+  for _ = 1, #all_lines do empty[#empty+1] = "" end
+  local buf, win = open_float(empty, width)
+
+  local revealed = 0
+
+  local function reveal_next()
+    if not api.nvim_buf_is_valid(buf) then return end
+    revealed = revealed + 1
+    api.nvim_buf_set_option(buf, "modifiable", true)
+    api.nvim_buf_set_lines(buf, revealed - 1, revealed, false, { all_lines[revealed] })
+    api.nvim_buf_set_option(buf, "modifiable", false)
+    for _, h in ipairs(hls) do
+      if h[2] == revealed - 1 then
+        api.nvim_buf_add_highlight(buf, 0, h[1], h[2], h[3], h[4])
+      end
+    end
+    if revealed < #all_lines then
+      vim.defer_fn(reveal_next, 80)
+    else
+      vim.keymap.set("n", "<CR>", function()
+        api.nvim_win_close(win, true)
+        on_continue(false)
+      end, { buffer = buf, nowait = true, silent = true })
+      vim.keymap.set("n", "q", function()
+        api.nvim_win_close(win, true)
+        on_continue(true)
+      end, { buffer = buf, nowait = true, silent = true })
+    end
+  end
+
+  vim.defer_fn(reveal_next, 80)
 end
 
 return M
