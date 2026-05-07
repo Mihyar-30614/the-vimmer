@@ -433,6 +433,7 @@ function M.open_play(room, game_state, on_win, on_death)
       update_hud()
       if dead then
         if _timer_handle then _timer_handle:stop() end
+        vim.cmd("stopinsert")
         multi_flash(play_buf, {
           { "VimmerDamage", 200 }, { nil, 100 }, { "VimmerDeath", 200 }
         }, on_death)
@@ -466,6 +467,7 @@ function M.open_play(room, game_state, on_win, on_death)
 
       if game_state:is_dead() then
         vim.on_key(nil, ns)
+        vim.cmd("stopinsert")
         vim.schedule(function()
           multi_flash(play_buf, {
             { "VimmerDamage", 200 }, { nil, 100 }, { "VimmerDeath", 200 }
