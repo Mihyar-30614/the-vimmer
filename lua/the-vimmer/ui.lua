@@ -390,6 +390,7 @@ function M.open_play(room, game_state, on_win, on_death)
         local target = table.concat(target_lines, "\n")
         if vim.trim(current) == vim.trim(target) then
           vim.on_key(nil, ns)
+          vim.cmd("stopinsert")
           local is_last = not room.is_boss or game_state.boss_phase >= game_state.boss_total_phases
           if is_last then
             flash(play_buf, "VimmerWin", function() on_win() end)
