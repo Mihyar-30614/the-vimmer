@@ -24,31 +24,74 @@ describe("progress.calculate_xp", function()
   end)
 end)
 
-describe("progress.is_tier_unlocked", function()
+describe("progress.calculate_xp with combo_mult and double_xp", function()
+  it("combo_mult=1 gives same result as before", function()
+    assert.equals(100, progress.calculate_xp(50, 100, 0, 1, false))
+  end)
+
+  it("combo_mult=2 doubles the total", function()
+    assert.equals(200, progress.calculate_xp(50, 100, 0, 2, false))
+  end)
+
+  it("combo_mult=3 triples the total", function()
+    assert.equals(300, progress.calculate_xp(50, 100, 0, 3, false))
+  end)
+
+  it("double_xp=true doubles after combo_mult", function()
+    assert.equals(400, progress.calculate_xp(50, 100, 0, 2, true))
+  end)
+
+  it("nil combo_mult defaults to 1", function()
+    assert.equals(100, progress.calculate_xp(50, 100, 0, nil, false))
+  end)
+
+  it("streak bonus still applies with combo_mult", function()
+    assert.equals(300, progress.calculate_xp(50, 100, 3, 2, false))
+  end)
+end)
+
+describe("progress.is_tier_unlocked (boss-gate system)", function()
   it("beginner is always unlocked", function()
     assert.is_true(progress.is_tier_unlocked("beginner", {}, 10))
   end)
 
-  it("warrior locked when fewer than 80% beginner cleared", function()
-    local cleared = { beginner_1 = true, beginner_2 = true }
+  it("warrior locked when beginner_boss not cleared", function()
+    local cleared = {}
+    for i = 1, 10 do cleared["beginner_" .. i] = true end
     assert.is_false(progress.is_tier_unlocked("warrior", cleared, 10))
   end)
 
-  it("warrior unlocked when 80% or more beginner cleared", function()
-    local cleared = {}
-    for i = 1, 8 do cleared["beginner_" .. i] = true end
-    assert.is_true(progress.is_tier_unlocked("warrior", cleared, 10))
+  it("warrior unlocked when beginner_boss cleared", function()
+    assert.is_true(progress.is_tier_unlocked("warrior", { beginner_boss = true }, 10))
   end)
 
-  it("ninja locked when warrior < 80%", function()
-    local cleared = { warrior_1 = true }
-    assert.is_false(progress.is_tier_unlocked("ninja", cleared, 6))
+  it("ninja locked when warrior_boss not cleared", function()
+    assert.is_false(progress.is_tier_unlocked("ninja", { beginner_boss = true }, 6))
   end)
 
-  it("ninja unlocked when warrior >= 80%", function()
-    local cleared = {}
-    for i = 1, 5 do cleared["warrior_" .. i] = true end
+  it("ninja unlocked when warrior_boss cleared", function()
+    local cleared = { beginner_boss = true, warrior_boss = true }
     assert.is_true(progress.is_tier_unlocked("ninja", cleared, 6))
+  end)
+end)
+
+describe("progress.is_boss_unlocked", function()
+  it("returns false when fewer than 80% of regular rooms cleared", function()
+    local cleared = { beginner_hjkl = true, beginner_hjkl2 = true }
+    assert.is_false(progress.is_boss_unlocked("beginner", cleared, 10))
+  end)
+
+  it("returns true when 80% or more regular rooms cleared", function()
+    local cleared = {}
+    for i = 1, 8 do cleared["beginner_room" .. i] = true end
+    assert.is_true(progress.is_boss_unlocked("beginner", cleared, 10))
+  end)
+
+  it("does not count boss rooms toward the 80%", function()
+    local cleared = {}
+    for i = 1, 7 do cleared["beginner_room" .. i] = true end
+    cleared["beginner_boss"] = true
+    assert.is_false(progress.is_boss_unlocked("beginner", cleared, 10))
   end)
 end)
 

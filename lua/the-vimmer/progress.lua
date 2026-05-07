@@ -14,21 +14,31 @@ local function default_state()
   return { total_xp = 0, cleared = {}, streak = 0, unlocked_tiers = { beginner = true } }
 end
 
-function M.calculate_xp(base_xp, remaining_hp, streak)
+function M.calculate_xp(base_xp, remaining_hp, streak, combo_mult, double_xp)
+  combo_mult = combo_mult or 1
   local hp_bonus = math.floor(remaining_hp / 100 * base_xp)
   local subtotal = base_xp + hp_bonus
   local streak_bonus = (streak >= 3) and math.floor(subtotal * 0.5) or 0
-  return subtotal + streak_bonus
+  local total = (subtotal + streak_bonus) * combo_mult
+  if double_xp then total = total * 2 end
+  return math.floor(total)
 end
 
 function M.is_tier_unlocked(tier, cleared, total_in_tier)
   if tier == "beginner" then return true end
-  local prefix = (tier == "warrior") and "beginner_" or "warrior_"
+  local boss_id = (tier == "warrior") and "beginner_boss" or "warrior_boss"
+  return cleared[boss_id] == true
+end
+
+function M.is_boss_unlocked(tier, cleared, total_regular)
+  local prefix = tier .. "_"
   local count = 0
   for k, v in pairs(cleared) do
-    if v and k:match("^" .. prefix) then count = count + 1 end
+    if v and k:match("^" .. prefix) and not k:match("_boss$") then
+      count = count + 1
+    end
   end
-  return count >= math.ceil((total_in_tier or 1) * 0.8)
+  return count >= math.ceil((total_regular or 1) * 0.8)
 end
 
 function M.default_path()
