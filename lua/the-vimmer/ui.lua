@@ -136,11 +136,11 @@ function M.open_teach(room, on_begin)
   local lines = {}
 
   lines[#lines+1] = b.top
-  lines[#lines+1] = b.row("  COMMAND: " .. room.command)
-  lines[#lines+1] = b.row("  " .. room.description)
+  lines[#lines+1] = b.row("  COMMAND: " .. room.command:gsub("\n", " ↵ "))
+  lines[#lines+1] = b.row("  " .. room.description:gsub("\n", " ↵ "))
   lines[#lines+1] = b.sep
-  lines[#lines+1] = b.row("  BEFORE:  " .. room.before_example)
-  lines[#lines+1] = b.row("  AFTER:   " .. room.after_example)
+  lines[#lines+1] = b.row("  BEFORE:  " .. room.before_example:gsub("\n", " ↵ "))
+  lines[#lines+1] = b.row("  AFTER:   " .. room.after_example:gsub("\n", " ↵ "))
   lines[#lines+1] = b.row("")
   -- wrap usage_tip at 46 chars
   local tip = room.usage_tip
