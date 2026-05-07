@@ -1,0 +1,23 @@
+# Lua
+luac.out
+*.luac
+
+# LuaRocks
+*.rockspec
+*.rock
+/luarocks/
+
+# Test output
+/luacov.stats.out
+/luacov.report.out
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
