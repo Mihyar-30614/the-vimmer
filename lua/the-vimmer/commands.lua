@@ -55,6 +55,10 @@ local function start_flow(room)
     local unlocked_msg = check_newly_unlocked(d, prog, rooms_by_tier)
     d.progress.save(prog)
 
+    local fast_clear = room.time_limit ~= nil
+      and g.timer_remaining ~= nil
+      and g.timer_remaining > room.time_limit * 0.5
+
     d.ui.open_results(g.last_xp, g.hp, g.streak, unlocked_msg,
       function(go_map)
         if go_map then
@@ -74,7 +78,12 @@ local function start_flow(room)
         else
           show_map()
         end
-      end)
+      end,
+      {
+        is_boss = room.is_boss,
+        fast_clear = fast_clear,
+        on_powerup = function(pu_type) g:grant_powerup(pu_type) end,
+      })
   end
 
   local function on_death()

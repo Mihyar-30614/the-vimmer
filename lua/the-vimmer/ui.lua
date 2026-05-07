@@ -88,7 +88,7 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
     ninja    = "VimmerTierNinja",
   }
   local tier_labels = { beginner = "BEGINNER", warrior = "WARRIOR", ninja = "NINJA" }
-  local tier_prereq = { warrior = "complete 80% of beginner", ninja = "complete 80% of warrior" }
+  local tier_prereq = { warrior = "complete boss first", ninja = "complete boss first" }
   local tiers = { "beginner", "warrior", "ninja" }
 
   add(b.top)
@@ -97,7 +97,14 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
   add(b.sep)
 
   for ti, tier in ipairs(tiers) do
-    local tier_rooms = rooms_by_tier[tier] or {}
+    local all_tier_rooms = rooms_by_tier[tier] or {}
+    local tier_rooms = {}
+    local boss_room = nil
+    for _, room in ipairs(all_tier_rooms) do
+      if room.is_boss then boss_room = room
+      else tier_rooms[#tier_rooms+1] = room end
+    end
+
     local prereq_tier = ({ warrior = "beginner", ninja = "warrior" })[tier]
     local total_prereq = prereq_tier and #(rooms_by_tier[prereq_tier] or {}) or 0
     local unlocked = progress.is_tier_unlocked(tier, progress_data.cleared, total_prereq)
@@ -116,6 +123,18 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
         else
           add(b.row(label))
           selectable[#selectable+1] = { line = #lines, room = room }
+        end
+      end
+      if boss_room then
+        local boss_cleared = progress_data.cleared[boss_room.id]
+        local boss_unlocked = progress.is_boss_unlocked(tier, progress_data.cleared, #tier_rooms)
+        if boss_cleared then
+          add(b.row("   ✓ ⚔  " .. boss_room.title:sub(1, 42)), "VimmerCleared")
+        elseif boss_unlocked then
+          add(b.row("   ► ⚔  " .. boss_room.title:sub(1, 42)), "VimmerBoss")
+          selectable[#selectable+1] = { line = #lines, room = boss_room }
+        else
+          add(b.row("     ⚔  " .. boss_room.title:sub(1, 42) .. "  [80% first]"), "VimmerLocked")
         end
       end
     end
@@ -182,19 +201,31 @@ function M.open_teach(room, on_begin)
   end
 
   add(b.top)
-  add(b.row("  COMMAND: " .. room.command:gsub("\n", " ↵ ")), "VimmerCommand")
-  add(b.row("  " .. room.description:gsub("\n", " ↵ ")), "VimmerTitle")
-  add(b.sep)
-  add(b.row("  BEFORE:  " .. room.before_example:gsub("\n", " ↵ ")), "VimmerLocked")
-  add(b.row("  AFTER:   " .. room.after_example:gsub("\n", " ↵ ")), "VimmerCleared")
-  add(b.row(""))
-  local tip = room.usage_tip
-  while #tip > 56 do
-    local cut = tip:sub(1, 56):match("^(.+) ")
-    add(b.row("  " .. (cut or tip:sub(1, 56))))
-    tip = tip:sub(#(cut or tip:sub(1, 56)) + 2)
+  if room.is_boss then
+    add(b.row("  ⚔ BOSS: " .. room.command:gsub("\n", " ↵ ")), "VimmerBoss")
+    add(b.row("  " .. room.description:gsub("\n", " ↵ ")), "VimmerTitle")
+    add(b.sep)
+    for i, phase in ipairs(room.phases) do
+      add(b.row(string.format("  PHASE %d: %s", i, phase.tip or "")), "VimmerCommand")
+      add(b.row("  BEFORE: " .. phase.start_text:gsub("\n", " ↵ ")), "VimmerLocked")
+      add(b.row("  AFTER:  " .. phase.target_text:gsub("\n", " ↵ ")), "VimmerCleared")
+      if i < #room.phases then add(b.row("")) end
+    end
+  else
+    add(b.row("  COMMAND: " .. room.command:gsub("\n", " ↵ ")), "VimmerCommand")
+    add(b.row("  " .. room.description:gsub("\n", " ↵ ")), "VimmerTitle")
+    add(b.sep)
+    add(b.row("  BEFORE:  " .. room.before_example:gsub("\n", " ↵ ")), "VimmerLocked")
+    add(b.row("  AFTER:   " .. room.after_example:gsub("\n", " ↵ ")), "VimmerCleared")
+    add(b.row(""))
+    local tip = room.usage_tip
+    while #tip > 56 do
+      local cut = tip:sub(1, 56):match("^(.+) ")
+      add(b.row("  " .. (cut or tip:sub(1, 56))))
+      tip = tip:sub(#(cut or tip:sub(1, 56)) + 2)
+    end
+    if #tip > 0 then add(b.row("  " .. tip)) end
   end
-  if #tip > 0 then add(b.row("  " .. tip)) end
   add(b.sep)
   add(b.row("  <Enter> to begin   <q> back"))
   add(b.bot)
@@ -202,13 +233,14 @@ function M.open_teach(room, on_begin)
   local buf, win = open_float(lines, width)
   apply_hl(buf, hls)
 
-  -- highlight | cursor markers in BEFORE (line 4) and AFTER (line 5), 0-indexed
-  for _, li in ipairs({ 4, 5 }) do
-    local row = lines[li + 1]
-    if row then
-      local pipe = row:find("|", 1, true)
-      if pipe then
-        api.nvim_buf_add_highlight(buf, 0, "VimmerExample", li, pipe - 1, pipe)
+  if not room.is_boss then
+    for _, li in ipairs({ 4, 5 }) do
+      local row = lines[li + 1]
+      if row then
+        local pipe = row:find("|", 1, true)
+        if pipe then
+          api.nvim_buf_add_highlight(buf, 0, "VimmerExample", li, pipe - 1, pipe)
+        end
       end
     end
   end
@@ -225,19 +257,40 @@ end
 
 local _play_ns = nil
 local _play_tab = nil
+local _timer_handle = nil
+
+function M._show_phase_banner(win, phase_num, callback)
+  local label = string.format("  ── PHASE %d ──  ", phase_num)
+  local buf = api.nvim_create_buf(false, true)
+  api.nvim_buf_set_lines(buf, 0, -1, false, { label })
+  api.nvim_buf_set_option(buf, "modifiable", false)
+  api.nvim_buf_set_option(buf, "bufhidden", "wipe")
+  local win_width = api.nvim_win_get_width(win)
+  local col = math.max(0, math.floor((win_width - #label) / 2))
+  local banner_win = api.nvim_open_win(buf, false, {
+    relative = "win", win = win,
+    row = 2, col = col,
+    width = #label, height = 1,
+    style = "minimal", border = "none",
+  })
+  api.nvim_buf_add_highlight(buf, 0, "VimmerPhase", 0, 0, -1)
+  vim.defer_fn(function()
+    if api.nvim_win_is_valid(banner_win) then
+      api.nvim_win_close(banner_win, true)
+    end
+    callback()
+  end, 800)
+end
 
 function M.open_play(room, game_state, on_win, on_death)
-  M._close_play()  -- clean up any previous session
-  local target_lines = vim.split(room.target_text, "\n")
-  local start_lines = vim.split(room.start_text, "\n")
+  M._close_play()
+  local hl = require("the-vimmer.highlights")
+  local initial_time = room.time_limit
 
   local target_buf = api.nvim_create_buf(false, true)
-  api.nvim_buf_set_lines(target_buf, 0, -1, false, target_lines)
-  api.nvim_buf_set_option(target_buf, "modifiable", false)
   api.nvim_buf_set_option(target_buf, "bufhidden", "wipe")
 
   local play_buf = api.nvim_create_buf(false, true)
-  api.nvim_buf_set_lines(play_buf, 0, -1, false, start_lines)
   api.nvim_buf_set_option(play_buf, "bufhidden", "wipe")
 
   vim.cmd("tabnew")
@@ -253,53 +306,125 @@ function M.open_play(room, game_state, on_win, on_death)
   vim.wo[top_win].winbar  = "%#VimmerCleared# ── TARGET ──%*"
   vim.wo[play_win].winbar = "%#VimmerTierWarrior# ── EDIT HERE ──%*"
 
+  local function pu_icons()
+    local icons = { hp_restore = "♥", freeze_timer = "❄", double_xp = "★" }
+    local s = ""
+    for _, pu in ipairs(game_state.power_ups) do
+      s = s .. "[" .. (icons[pu.type] or "?") .. "]"
+    end
+    return s ~= "" and ("  " .. s) or ""
+  end
+
   local function update_hud()
     local hp_blocks = math.ceil(game_state.hp / 10)
     local hp_bar = string.rep("█", hp_blocks) .. string.rep("░", 10 - hp_blocks)
-    local hp_grp = require("the-vimmer.highlights").hp_group(game_state.hp)
+    local hp_grp = hl.hp_group(game_state.hp)
+
+    local timer_str = ""
+    if game_state.timer_remaining then
+      local mins = math.floor(game_state.timer_remaining / 60)
+      local secs = game_state.timer_remaining % 60
+      local t_grp = hl.timer_group(game_state.timer_remaining, initial_time)
+      timer_str = string.format("  %%#%s#⏱ %d:%02d%%*", t_grp, mins, secs)
+    end
+
+    local mult_str = game_state.combo_mult > 1
+      and string.format("  x%d", game_state.combo_mult) or ""
+
     vim.wo[play_win].statusline = string.format(
-      " %%#%s#HP [%s] %d%%*  |  Streak %d  |  %s",
-      hp_grp, hp_bar, game_state.hp, game_state.streak, room.command
+      " %%#%s#HP [%s] %d%%*%s%s  Streak %d  |  %s%s",
+      hp_grp, hp_bar, game_state.hp,
+      timer_str, mult_str,
+      game_state.streak, room.command,
+      pu_icons()
     )
   end
 
-  update_hud()
-
-  _play_ns = api.nvim_create_namespace("the-vimmer-keys")
-  local ns = _play_ns  -- capture local copy
-
-  vim.on_key(function(key)
-    if not api.nvim_win_is_valid(play_win) then
-      vim.on_key(nil, ns)
-      return
-    end
-    if api.nvim_get_current_win() ~= play_win then return end
-
-    game_state:register_key(key)
-    update_hud()
-
-    if game_state:is_dead() then
-      vim.on_key(nil, ns)
-      vim.schedule(function() flash(play_buf, "VimmerDeath", on_death) end)
-      return
-    end
-
-    vim.schedule(function()
-      if not api.nvim_buf_is_valid(play_buf) then return end
-      local current = table.concat(api.nvim_buf_get_lines(play_buf, 0, -1, false), "\n")
-      local target = table.concat(target_lines, "\n")
-      if vim.trim(current) == vim.trim(target) then
-        vim.on_key(nil, ns)
-        flash(play_buf, "VimmerWin", function() on_win(game_state.hp) end)
+  local function start_timer()
+    if not game_state.timer_remaining then return end
+    _timer_handle = vim.loop.new_timer()
+    _timer_handle:start(1000, 1000, vim.schedule_wrap(function()
+      if game_state.state ~= "playing" then
+        if _timer_handle then _timer_handle:stop() end
+        return
       end
-    end)
-  end, ns)
+      local dead = game_state:tick_timer()
+      update_hud()
+      if dead then
+        if _timer_handle then _timer_handle:stop() end
+        flash(play_buf, "VimmerDeath", on_death)
+      end
+    end))
+  end
+
+  local function start_phase(phase_data)
+    local target_lines = vim.split(phase_data.target_text, "\n")
+
+    api.nvim_buf_set_option(target_buf, "modifiable", true)
+    api.nvim_buf_set_lines(target_buf, 0, -1, false, target_lines)
+    api.nvim_buf_set_option(target_buf, "modifiable", false)
+
+    api.nvim_buf_set_lines(play_buf, 0, -1, false, vim.split(phase_data.start_text, "\n"))
+
+    local ns = api.nvim_create_namespace("the-vimmer-keys-" .. tostring(game_state.boss_phase))
+    _play_ns = ns
+
+    vim.on_key(function(key)
+      if not api.nvim_win_is_valid(play_win) then
+        vim.on_key(nil, ns); return
+      end
+      if api.nvim_get_current_win() ~= play_win then return end
+
+      game_state:register_key(key)
+      update_hud()
+
+      if game_state:is_dead() then
+        vim.on_key(nil, ns)
+        vim.schedule(function() flash(play_buf, "VimmerDeath", on_death) end)
+        return
+      end
+
+      vim.schedule(function()
+        if not api.nvim_buf_is_valid(play_buf) then return end
+        local current = table.concat(api.nvim_buf_get_lines(play_buf, 0, -1, false), "\n")
+        local target = table.concat(target_lines, "\n")
+        if vim.trim(current) == vim.trim(target) then
+          vim.on_key(nil, ns)
+          local is_last = not room.is_boss or game_state.boss_phase >= game_state.boss_total_phases
+          if is_last then
+            flash(play_buf, "VimmerWin", function() on_win() end)
+          else
+            flash(play_buf, "VimmerWin", function()
+              game_state:advance_boss_phase()
+              M._show_phase_banner(play_win, game_state.boss_phase, function()
+                start_phase(room.phases[game_state.boss_phase])
+              end)
+            end)
+          end
+        end
+      end)
+    end, ns)
+
+    vim.keymap.set("n", "<Tab>", function()
+      if game_state:activate_freeze(5) then update_hud() end
+    end, { buffer = play_buf, nowait = true, silent = true })
+  end
+
+  update_hud()
+  local first_phase = room.is_boss and room.phases[1] or room
+  start_phase(first_phase)
+  start_timer()
 end
 
 function M._close_play()
   if _play_ns then
     vim.on_key(nil, _play_ns)
     _play_ns = nil
+  end
+  if _timer_handle then
+    _timer_handle:stop()
+    _timer_handle:close()
+    _timer_handle = nil
   end
   if _play_tab and api.nvim_tabpage_is_valid(_play_tab) then
     pcall(function()
@@ -310,7 +435,12 @@ function M._close_play()
   end
 end
 
-function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_continue)
+function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_continue, opts)
+  opts = opts or {}
+  local is_boss = opts.is_boss
+  local fast_clear = opts.fast_clear
+  local on_powerup = opts.on_powerup
+
   local width = 60
   local b = make_border(width)
   local all_lines = {}
@@ -322,7 +452,11 @@ function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_conti
   end
 
   add(b.top)
-  add(b.row("  ROOM CLEARED!"), "VimmerWin")
+  if is_boss then
+    add(b.row("  ⚔ BOSS CLEARED!"), "VimmerBoss")
+  else
+    add(b.row("  ROOM CLEARED!"), "VimmerWin")
+  end
   add(b.sep)
   add(b.row(string.format("  XP Earned:     +%d", xp_earned)), "VimmerXP")
   add(b.row(string.format("  HP Remaining:  %d / 100", hp_remaining)), "VimmerTitle")
@@ -337,8 +471,23 @@ function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_conti
     add(b.row("  " .. unlocked_tier), tier_grp)
   end
 
+  local powerup_section_start = nil
+  if fast_clear and on_powerup then
+    add(b.sep)
+    add(b.row("  ⚡ FAST CLEAR! Choose a power-up:"), "VimmerXP")
+    powerup_section_start = #all_lines + 1
+    add(b.row("    ♥  +30 HP next room"))
+    add(b.row("    ❄  Freeze timer 5s"))
+    add(b.row("    ★  Double XP next room"))
+  end
+
   add(b.sep)
-  add(b.row("  <Enter> next room   <q> map"))
+  local footer_line = #all_lines + 1
+  if fast_clear and on_powerup then
+    add(b.row("  j/k choose   <Enter> pick"))
+  else
+    add(b.row("  <Enter> next room   <q> map"))
+  end
   add(b.bot)
 
   local empty = {}
@@ -361,14 +510,46 @@ function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_conti
     if revealed < #all_lines then
       vim.defer_fn(reveal_next, 80)
     else
-      vim.keymap.set("n", "<CR>", function()
-        api.nvim_win_close(win, true)
-        on_continue(false)
-      end, { buffer = buf, nowait = true, silent = true })
-      vim.keymap.set("n", "q", function()
-        api.nvim_win_close(win, true)
-        on_continue(true)
-      end, { buffer = buf, nowait = true, silent = true })
+      if fast_clear and on_powerup and powerup_section_start then
+        local pu_types = { "hp_restore", "freeze_timer", "double_xp" }
+        local sel_ns = api.nvim_create_namespace("the-vimmer-pu-sel")
+        local cur = 1
+        local function update_pu_sel()
+          api.nvim_buf_clear_namespace(buf, sel_ns, 0, -1)
+          local line = powerup_section_start + cur - 2
+          api.nvim_buf_add_highlight(buf, sel_ns, "VimmerSelected", line, 0, -1)
+        end
+        update_pu_sel()
+        vim.keymap.set("n", "j", function()
+          cur = math.min(cur + 1, 3); update_pu_sel()
+        end, { buffer = buf, nowait = true, silent = true })
+        vim.keymap.set("n", "k", function()
+          cur = math.max(cur - 1, 1); update_pu_sel()
+        end, { buffer = buf, nowait = true, silent = true })
+        vim.keymap.set("n", "<CR>", function()
+          on_powerup(pu_types[cur])
+          api.nvim_buf_set_option(buf, "modifiable", true)
+          api.nvim_buf_set_lines(buf, footer_line - 1, footer_line, false,
+            { b.row("  <Enter> next room   <q> map") })
+          api.nvim_buf_set_option(buf, "modifiable", false)
+          api.nvim_buf_clear_namespace(buf, sel_ns, 0, -1)
+          vim.keymap.del("n", "j", { buffer = buf })
+          vim.keymap.del("n", "k", { buffer = buf })
+          vim.keymap.set("n", "<CR>", function()
+            api.nvim_win_close(win, true); on_continue(false)
+          end, { buffer = buf, nowait = true, silent = true })
+          vim.keymap.set("n", "q", function()
+            api.nvim_win_close(win, true); on_continue(true)
+          end, { buffer = buf, nowait = true, silent = true })
+        end, { buffer = buf, nowait = true, silent = true })
+      else
+        vim.keymap.set("n", "<CR>", function()
+          api.nvim_win_close(win, true); on_continue(false)
+        end, { buffer = buf, nowait = true, silent = true })
+        vim.keymap.set("n", "q", function()
+          api.nvim_win_close(win, true); on_continue(true)
+        end, { buffer = buf, nowait = true, silent = true })
+      end
     end
   end
 
