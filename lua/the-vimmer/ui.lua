@@ -34,7 +34,7 @@ local function apply_hl(buf, highlights)
   end
 end
 
-local function flash(buf, group, callback)
+local function flash(buf, group, duration, callback)
   local n = api.nvim_buf_line_count(buf)
   for i = 0, n - 1 do
     api.nvim_buf_add_highlight(buf, _flash_ns, group, i, 0, -1)
@@ -43,8 +43,31 @@ local function flash(buf, group, callback)
     if api.nvim_buf_is_valid(buf) then
       api.nvim_buf_clear_namespace(buf, _flash_ns, 0, -1)
     end
-    callback()
-  end, 100)
+    if callback then callback() end
+  end, duration or 100)
+end
+
+local function multi_flash(buf, steps, callback)
+  local function run(i)
+    if i > #steps then
+      if callback then callback() end
+      return
+    end
+    local group, duration = steps[i][1], steps[i][2]
+    if group and api.nvim_buf_is_valid(buf) then
+      local n = api.nvim_buf_line_count(buf)
+      for row = 0, n - 1 do
+        api.nvim_buf_add_highlight(buf, _flash_ns, group, row, 0, -1)
+      end
+    end
+    vim.defer_fn(function()
+      if api.nvim_buf_is_valid(buf) then
+        api.nvim_buf_clear_namespace(buf, _flash_ns, 0, -1)
+      end
+      run(i + 1)
+    end, duration)
+  end
+  run(1)
 end
 
 local function open_float(lines, width)
