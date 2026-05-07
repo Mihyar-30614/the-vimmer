@@ -14,6 +14,13 @@ function M.timer_group(remaining, total)
   else return "VimmerTimerDanger" end
 end
 
+function M.combo_group(combo)
+  if combo >= 20 then return "VimmerComboCrit"
+  elseif combo >= 10 then return "VimmerComboFire"
+  elseif combo >= 5 then return "VimmerPhase"
+  else return nil end
+end
+
 function M.setup()
   local hl = vim.api.nvim_set_hl
   hl(0, "VimmerTitle",        { bold = true, fg = "#ffffff" })
