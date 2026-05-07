@@ -14,6 +14,30 @@ function M.timer_group(remaining, total)
   else return "VimmerTimerDanger" end
 end
 
+local function visible_len(s)
+  local len = 0
+  local i = 1
+  while i <= #s do
+    local b = s:byte(i)
+    if b < 0x80 then i = i + 1
+    elseif b < 0xe0 then i = i + 2
+    elseif b < 0xf0 then i = i + 3
+    else i = i + 4 end
+    len = len + 1
+  end
+  return len
+end
+
+function M.build_diff_line(before_ex, after_ex, max_w)
+  local before_disp = before_ex:gsub("|", "▌")
+  local after_disp = after_ex:gsub("|", "▌")
+  local combined = before_disp .. "  →  " .. after_disp
+  if visible_len(combined) <= max_w then
+    return { combined }
+  end
+  return { before_disp, "→  " .. after_disp }
+end
+
 function M.combo_group(combo)
   if combo >= 20 then return "VimmerComboCrit"
   elseif combo >= 10 then return "VimmerComboFire"
