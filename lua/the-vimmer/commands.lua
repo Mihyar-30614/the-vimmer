@@ -82,8 +82,10 @@ local function start_flow(room)
     g:retry_room()
     prog.streak = 0
     d.progress.save(prog)
-    vim.notify("the-vimmer: 0 HP — retrying room...", vim.log.levels.INFO)
-    start_flow(room)
+    d.ui.open_death(room,
+      function() start_flow(room) end,
+      show_map
+    )
   end
 
   g:start_room(room)
