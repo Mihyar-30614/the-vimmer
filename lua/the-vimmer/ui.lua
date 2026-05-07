@@ -311,6 +311,7 @@ function M.open_play(room, game_state, on_win, on_death)
   local initial_time = room.time_limit
   local HUD_W = 20
   local _hud_ns = api.nvim_create_namespace("the-vimmer-hud")
+  local _crit_ns = api.nvim_create_namespace("the-vimmer-crit")
 
   local target_buf = api.nvim_create_buf(false, true)
   api.nvim_buf_set_option(target_buf, "bufhidden", "wipe")
@@ -448,7 +449,10 @@ function M.open_play(room, game_state, on_win, on_death)
       end
       if api.nvim_get_current_win() ~= play_win then return end
 
+      local prev_streak = game_state.correct_streak
       game_state:register_key(key)
+      local is_correct = game_state.correct_streak > prev_streak
+      local regen_tick = is_correct and (game_state.correct_streak % 3 == 0)
       update_hud()
 
       if game_state:is_dead() then
@@ -459,6 +463,22 @@ function M.open_play(room, game_state, on_win, on_death)
           }, on_death)
         end)
         return
+      end
+
+      if not is_correct then
+        flash(play_buf, "VimmerDamage", 80)
+      elseif regen_tick then
+        flash(play_buf, "VimmerRegen", 80)
+      end
+
+      if is_correct and api.nvim_win_is_valid(play_win) then
+        local row = api.nvim_win_get_cursor(play_win)[1] - 1
+        api.nvim_buf_add_highlight(play_buf, _crit_ns, "VimmerCrit", row, 0, -1)
+        vim.defer_fn(function()
+          if api.nvim_buf_is_valid(play_buf) then
+            api.nvim_buf_clear_namespace(play_buf, _crit_ns, 0, -1)
+          end
+        end, 120)
       end
 
       vim.schedule(function()
