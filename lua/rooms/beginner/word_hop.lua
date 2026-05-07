@@ -1,0 +1,15 @@
+return {
+  id = "beginner_word_hop",
+  tier = "beginner",
+  command = "w / b / e",
+  title = "Word Motions: w, b, e",
+  description = "w = next word, b = back word, e = end of word",
+  before_example = "|one two three",
+  after_example = "one |two three",
+  usage_tip = "w hops forward one word. 2w hops two words. b reverses.",
+  start_text = "the quick brown fox jumps",
+  target_text = "the quick green fox jumps",
+  base_xp = 40,
+  time_limit = 35,
+  optimal_keystrokes = { "2", "w", "c", "w", "g", "r", "e", "e", "n", "\27" },
+}

@@ -1,0 +1,15 @@
+return {
+  id = "beginner_counts",
+  tier = "beginner",
+  command = "N<motion> / d$",
+  title = "Numeric Prefixes",
+  description = "Any motion or operator can be prefixed with a count: 3w, 2dd, 5x",
+  before_example = "|aaa bbb ccc ddd eee",
+  after_example = "|aaa bbb ccc",
+  usage_tip = "4w jumps 4 words. 2dd deletes 2 lines. d$ deletes to end of line.",
+  start_text = "aaa bbb ccc ddd eee\nextra line",
+  target_text = "aaa bbb ccc\nextra line",
+  base_xp = 45,
+  time_limit = 25,
+  optimal_keystrokes = { "3", "w", "d", "$" },
+}

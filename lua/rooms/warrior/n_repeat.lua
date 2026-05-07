@@ -1,0 +1,15 @@
+return {
+  id = "warrior_n_repeat",
+  tier = "warrior",
+  command = "/pattern + n + ciw",
+  title = "Search and Replace (manual)",
+  description = "Search for a pattern, jump to each match with n, change with ciw",
+  before_example = "|foo …  foo",
+  after_example = "|bar …  bar",
+  usage_tip = "/foo<CR> finds first match. n jumps to next. ciw changes the word. . repeats.",
+  start_text = "foo is good and foo does great foo things with foo",
+  target_text = "bar is good and bar does great bar things with bar",
+  base_xp = 80,
+  time_limit = 60,
+  optimal_keystrokes = { "/", "f", "o", "o", "\r", "c", "i", "w", "b", "a", "r", "\27", "n", ".", "n", ".", "n", "." },
+}

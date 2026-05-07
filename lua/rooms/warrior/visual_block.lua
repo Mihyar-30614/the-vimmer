@@ -1,0 +1,15 @@
+return {
+  id = "warrior_visual_block",
+  tier = "warrior",
+  command = "<C-v> + I",
+  title = "Visual Block Insert",
+  description = "Ctrl-v selects a vertical block. I inserts at every selected line simultaneously.",
+  before_example = "|item one\nitem two",
+  after_example = "|- item one\n- item two",
+  usage_tip = "<C-v> enters visual block. Select lines with j. I to insert. <Esc> applies to all.",
+  start_text = "item one\nitem two\nitem three\nitem four\nitem five",
+  target_text = "- item one\n- item two\n- item three\n- item four\n- item five",
+  base_xp = 85,
+  time_limit = 30,
+  optimal_keystrokes = { "\22", "4", "j", "I", "-", " ", "\27" },
+}

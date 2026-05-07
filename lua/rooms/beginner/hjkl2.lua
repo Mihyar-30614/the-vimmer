@@ -1,0 +1,15 @@
+return {
+  id = "beginner_hjkl2",
+  tier = "beginner",
+  command = "Nj / Nk / Nl / Nh",
+  title = "Count Motions",
+  description = "Prefix hjkl with a number to move multiple steps at once",
+  before_example = "|first\nsecond\nthird",
+  after_example = "first\nsecond\n|third",
+  usage_tip = "3j moves 3 lines down. 5l moves 5 chars right. No arrow keys.",
+  start_text = "first\nsecond\nthird\nfourth\nFIFTH",
+  target_text = "first\nsecond\nthird\nfourth\nfifth",
+  base_xp = 40,
+  time_limit = 30,
+  optimal_keystrokes = { "4", "j", "~", "~", "~", "~", "~" },
+}

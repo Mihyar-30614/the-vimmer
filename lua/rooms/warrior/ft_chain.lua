@@ -1,0 +1,15 @@
+return {
+  id = "warrior_ft_chain",
+  tier = "warrior",
+  command = "f / t / ; / ,",
+  title = "f/t Motion Chain",
+  description = "f finds a char on the line. ; repeats forward. , reverses.",
+  before_example = "print(hello, world, |foo)",
+  after_example = "print(hello, world, |bar)",
+  usage_tip = "ff finds next 'f'. ; jumps to the one after. , goes back. t stops before the char.",
+  start_text = "print(hello, world, foo)",
+  target_text = "print(hello, world, bar)",
+  base_xp = 70,
+  time_limit = 30,
+  optimal_keystrokes = { "f", "f", "c", "w", "b", "a", "r", "\27" },
+}

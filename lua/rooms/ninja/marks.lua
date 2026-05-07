@@ -1,0 +1,15 @@
+return {
+  id = "ninja_marks",
+  tier = "ninja",
+  command = "m<a> / '<a> / `<a>",
+  title = "Marks: Long-Range Jumps",
+  description = "Set a mark with ma. Jump back to it with 'a (line) or `a (exact position).",
+  before_example = "START|  →  mark  →  far  →  'a jumps back",
+  after_example = "MARKED|  →  mark  →  far  →  DONE",
+  usage_tip = "ma sets mark 'a' at cursor. 'a jumps to that line from anywhere in the file.",
+  start_text = "START\n\n\n\n\n\n\n\n\n\nEND",
+  target_text = "MARKED\n\n\n\n\n\n\n\n\n\nDONE",
+  base_xp = 110,
+  time_limit = 60,
+  optimal_keystrokes = { "m", "a", "9", "j", "c", "i", "w", "D", "O", "N", "E", "\27", "'", "a", "c", "i", "w", "M", "A", "R", "K", "E", "D", "\27" },
+}

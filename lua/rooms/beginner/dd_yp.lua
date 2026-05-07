@@ -1,0 +1,15 @@
+return {
+  id = "beginner_dd_yp",
+  tier = "beginner",
+  command = "dd / yy / p",
+  title = "Cut, Copy, Paste Lines",
+  description = "dd cuts a line, yy copies it, p pastes below cursor",
+  before_example = "b\n|a",
+  after_example = "|a\nb",
+  usage_tip = "dd on a line deletes it into the register. p pastes it after cursor line.",
+  start_text = "banana\napple\ncherry",
+  target_text = "apple\nbanana\ncherry",
+  base_xp = 45,
+  time_limit = 30,
+  optimal_keystrokes = { "d", "d", "p" },
+}
