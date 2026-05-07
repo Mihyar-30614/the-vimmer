@@ -250,12 +250,16 @@ function M.open_play(room, game_state, on_win, on_death)
   api.nvim_win_set_buf(play_win, play_buf)
   api.nvim_set_current_win(play_win)
 
+  vim.wo[top_win].winbar  = "%#VimmerCleared# ── TARGET ──%*"
+  vim.wo[play_win].winbar = "%#VimmerTierWarrior# ── EDIT HERE ──%*"
+
   local function update_hud()
     local hp_blocks = math.ceil(game_state.hp / 10)
     local hp_bar = string.rep("█", hp_blocks) .. string.rep("░", 10 - hp_blocks)
+    local hp_grp = require("the-vimmer.highlights").hp_group(game_state.hp)
     vim.wo[play_win].statusline = string.format(
-      " HP [%s] %d  |  Streak %d  |  %s",
-      hp_bar, game_state.hp, game_state.streak, room.command
+      " %%#%s#HP [%s] %d%%*  |  Streak %d  |  %s",
+      hp_grp, hp_bar, game_state.hp, game_state.streak, room.command
     )
   end
 
@@ -276,7 +280,7 @@ function M.open_play(room, game_state, on_win, on_death)
 
     if game_state:is_dead() then
       vim.on_key(nil, ns)
-      vim.schedule(function() on_death() end)
+      vim.schedule(function() flash(play_buf, "VimmerDeath", on_death) end)
       return
     end
 
@@ -286,7 +290,7 @@ function M.open_play(room, game_state, on_win, on_death)
       local target = table.concat(target_lines, "\n")
       if vim.trim(current) == vim.trim(target) then
         vim.on_key(nil, ns)
-        on_win(game_state.hp)
+        flash(play_buf, "VimmerWin", function() on_win(game_state.hp) end)
       end
     end)
   end, ns)
