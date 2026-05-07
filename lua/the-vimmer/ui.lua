@@ -213,10 +213,12 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
 end
 
 function M.open_teach(room, on_begin)
-  local width = 60
+  local hl = require("the-vimmer.highlights")
+  local width = 70
   local b = make_border(width)
   local lines = {}
   local hls = {}
+  local diff_rows = {}
 
   local function add(content, group)
     lines[#lines+1] = content
@@ -235,19 +237,22 @@ function M.open_teach(room, on_begin)
       if i < #room.phases then add(b.row("")) end
     end
   else
-    add(b.row("  COMMAND: " .. room.command:gsub("\n", " ↵ ")), "VimmerCommand")
+    add(b.row("  " .. room.command:gsub("\n", " ↵ ")), "VimmerCommand")
     add(b.row("  " .. room.description:gsub("\n", " ↵ ")), "VimmerTitle")
     add(b.sep)
-    add(b.row("  BEFORE:  " .. room.before_example:gsub("\n", " ↵ ")), "VimmerLocked")
-    add(b.row("  AFTER:   " .. room.after_example:gsub("\n", " ↵ ")), "VimmerCleared")
-    add(b.row(""))
-    local tip = room.usage_tip
-    while #tip > 56 do
-      local cut = tip:sub(1, 56):match("^(.+) ")
-      add(b.row("  " .. (cut or tip:sub(1, 56))))
-      tip = tip:sub(#(cut or tip:sub(1, 56)) + 2)
+    local diff_lines = hl.build_diff_line(room.before_example, room.after_example, 66)
+    for _, dl in ipairs(diff_lines) do
+      diff_rows[#diff_rows+1] = #lines
+      add(b.row("  " .. dl))
     end
-    if #tip > 0 then add(b.row("  " .. tip)) end
+    add(b.sep)
+    local tip = room.usage_tip
+    while #tip > 66 do
+      local cut = tip:sub(1, 66):match("^(.+) ")
+      add(b.row("  " .. (cut or tip:sub(1, 66))), "VimmerLocked")
+      tip = tip:sub(#(cut or tip:sub(1, 66)) + 2)
+    end
+    if #tip > 0 then add(b.row("  " .. tip), "VimmerLocked") end
   end
   add(b.sep)
   add(b.row("  <Enter> to begin   <q> back"))
@@ -256,14 +261,25 @@ function M.open_teach(room, on_begin)
   local buf, win = open_float(lines, width)
   apply_hl(buf, hls)
 
-  if not room.is_boss then
-    for _, li in ipairs({ 4, 5 }) do
-      local row = lines[li + 1]
-      if row then
-        local pipe = row:find("|", 1, true)
-        if pipe then
-          api.nvim_buf_add_highlight(buf, 0, "VimmerExample", li, pipe - 1, pipe)
+  for _, row in ipairs(diff_rows) do
+    local line = lines[row + 1]
+    local pos = 1
+    while pos <= #line do
+      local b1 = line:byte(pos)
+      if b1 == 0xe2 then
+        local b2 = line:byte(pos + 1) or 0
+        local b3 = line:byte(pos + 2) or 0
+        if b2 == 0x96 and b3 == 0x8c then
+          api.nvim_buf_add_highlight(buf, 0, "VimmerCrit", row, pos - 1, pos + 2)
+          pos = pos + 3
+        elseif b2 == 0x86 and b3 == 0x92 then
+          api.nvim_buf_add_highlight(buf, 0, "VimmerXP", row, pos - 1, pos + 2)
+          pos = pos + 3
+        else
+          pos = pos + 1
         end
+      else
+        pos = pos + 1
       end
     end
   end
