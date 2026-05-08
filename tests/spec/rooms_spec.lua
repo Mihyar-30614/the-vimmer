@@ -27,6 +27,25 @@ describe("rooms.validate", function()
     r.optimal_keystrokes = nil
     assert.is_false(rooms.validate(r))
   end)
+
+  it("rejects invalid optimal_keystrokes_alternates", function()
+    local r = {}
+    for k, v in pairs(valid_room) do r[k] = v end
+    r.optimal_keystrokes_alternates = "bad"
+    assert.is_false(rooms.validate(r))
+  end)
+end)
+
+describe("rooms.acceptable_key_sequences", function()
+  it("returns primary plus alternates", function()
+    local seqs = rooms.acceptable_key_sequences({
+      optimal_keystrokes = { "w", "c", "i", "w" },
+      optimal_keystrokes_alternates = { { "w", "c", "a", "w" } },
+    })
+    assert.equals(2, #seqs)
+    assert.same({ "w", "c", "i", "w" }, seqs[1])
+    assert.same({ "w", "c", "a", "w" }, seqs[2])
+  end)
 end)
 
 describe("rooms.load_tier", function()

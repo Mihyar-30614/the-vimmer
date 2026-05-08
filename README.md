@@ -34,7 +34,17 @@ Die (HP → 0): room restarts, streak resets.
 {
   "mihyar-30614/the-vimmer",
   config = function()
-    require("the-vimmer").setup()
+    require("the-vimmer").setup({
+      -- Optional lifecycle hooks (payload tables documented below)
+      hooks = {
+        win = function(ev)
+          -- ev: room_id, xp, streak, flawless, daily
+        end,
+        death = function(ev)
+          -- ev: room_id, timed_out, mistakes
+        end,
+      },
+    })
   end,
 }
 ```
@@ -45,7 +55,7 @@ Die (HP → 0): room restarts, streak resets.
 use {
   "mihyar-30614/the-vimmer",
   config = function()
-    require("the-vimmer").setup()
+    require("the-vimmer").setup({}) -- same options as lazy.nvim example above
   end,
 }
 ```
@@ -65,14 +75,14 @@ Add to your `init.lua`:
 
 ```lua
 vim.opt.rtp:prepend("/path/to/the_vimmer")
-require("the-vimmer").setup()
+require("the-vimmer").setup({})
 ```
 
 Or run directly from Neovim:
 
 ```vim
 :set rtp+=/path/to/the_vimmer
-:lua require("the-vimmer").setup()
+:lua require("the-vimmer").setup({})
 ```
 
 ## Commands
@@ -81,8 +91,35 @@ Or run directly from Neovim:
 |---------|-------------|
 | `:VimmerPlay` | Open room map, pick a room |
 | `:VimmerPlay <room_id>` | Jump directly to a room (e.g. `beginner_hjkl`) |
-| `:VimmerProgress` | Show XP, rooms cleared, and streak |
+| `:VimmerPick` | Fuzzy-pick a room (requires [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)) |
+| `:VimmerDaily` | Today’s seeded challenge + optional random unlocked mutator |
+| `:VimmerProgress` | Floating panel: XP, streak, tiers, suggested drill, mutators |
 | `:VimmerReset` | Reset all progress |
+
+### Mutators
+
+Lifetime XP unlocks mutators used by `:VimmerDaily` (and extensible via `start_flow`):
+
+| ID | Unlock (total XP) | Effect |
+|----|-------------------|--------|
+| `iron` | 120 | No +2 HP on every 3rd correct key |
+| `glass` | 280 | Wrong keys cost −8 HP instead of −5 |
+| `rush` | 480 | Timer loses 2 seconds per tick |
+
+### Extra room packs
+
+Add validated room Lua files under **`the-vimmer/rooms/<tier>/`** (for example `the-vimmer/rooms/warrior/foo.lua`) anywhere on **`runtimepath`**. They load after the built-in pack; duplicate room `id`s are skipped with a warning.
+
+### Setup hooks
+
+```lua
+require("the-vimmer").setup({
+  hooks = {
+    win = function(ev) end,   -- room_id, xp, streak, flawless, daily
+    death = function(ev) end,   -- room_id, timed_out, mistakes
+  },
+})
+```
 
 ## Room IDs
 
@@ -100,7 +137,7 @@ ninja_advanced_macros
 
 ## Progress
 
-Saved to `~/.local/share/nvim/the-vimmer/progress.json`. Reset with `:VimmerReset`.
+Saved to `~/.local/share/nvim/the-vimmer/progress.json` (XP, clears, streak, personal-best times per room, skill stats per room, daily stamp, unlocked mutators). Reset with `:VimmerReset`.
 
 ## Development
 

@@ -11,7 +11,97 @@ local function json_decode(s)
 end
 
 local function default_state()
-  return { total_xp = 0, cleared = {}, streak = 0, unlocked_tiers = { beginner = true } }
+  return {
+    total_xp = 0,
+    cleared = {},
+    streak = 0,
+    unlocked_tiers = { beginner = true },
+    room_best = {},
+    room_stats = {},
+    unlocked_mutators = {},
+    daily_stamp = "",
+    daily_room_id = "",
+    daily_mutators = {},
+  }
+end
+
+--- Mutators unlock when lifetime XP reaches threshold (single-player meta).
+M.MUTATOR_UNLOCK_XP = {
+  iron = 120,
+  glass = 280,
+  rush = 480,
+}
+
+function M.ensure_room_stats(prog, room_id)
+  prog.room_stats = prog.room_stats or {}
+  if not prog.room_stats[room_id] then
+    prog.room_stats[room_id] = {
+      attempts = 0,
+      clears = 0,
+      deaths = 0,
+      flawless_clears = 0,
+      keys_correct = 0,
+      keys_wrong = 0,
+    }
+  end
+  return prog.room_stats[room_id]
+end
+
+function M.record_attempt(prog, room_id)
+  local s = M.ensure_room_stats(prog, room_id)
+  s.attempts = s.attempts + 1
+end
+
+function M.record_clear_run(prog, room_id, game_state)
+  local s = M.ensure_room_stats(prog, room_id)
+  s.clears = s.clears + 1
+  s.keys_correct = s.keys_correct + (game_state.keys_correct or 0)
+  s.keys_wrong = s.keys_wrong + (game_state.keys_wrong or 0)
+  if game_state.flawless_run then
+    s.flawless_clears = s.flawless_clears + 1
+  end
+end
+
+function M.record_death(prog, room_id)
+  local s = M.ensure_room_stats(prog, room_id)
+  s.deaths = s.deaths + 1
+end
+
+function M.refresh_mutator_unlocks(prog)
+  prog.unlocked_mutators = prog.unlocked_mutators or {}
+  local xp = prog.total_xp or 0
+  for name, need in pairs(M.MUTATOR_UNLOCK_XP) do
+    if xp >= need then prog.unlocked_mutators[name] = true end
+  end
+end
+
+--- Regular room with lowest on-pattern ratio (needs attempts + key stats).
+function M.weakest_regular_room_id(prog, rooms_by_tier)
+  local tiers = require("the-vimmer.rooms").all_tiers()
+  local worst_id, worst_ratio = nil, 1.0001
+  for _, tier in ipairs(tiers) do
+    local list = rooms_by_tier[tier] or {}
+    local prereq_tier = ({ warrior = "beginner", ninja = "warrior" })[tier]
+    local total_prereq = prereq_tier and #(rooms_by_tier[prereq_tier] or {}) or 0
+    if M.is_tier_unlocked(tier, prog.cleared, total_prereq) then
+      for _, r in ipairs(list) do
+        if not r.is_boss then
+          local st = prog.room_stats and prog.room_stats[r.id]
+          if st and st.attempts > 0 then
+            local denom = st.keys_correct + st.keys_wrong
+            if denom > 0 then
+              local ratio = st.keys_correct / denom
+              if ratio < worst_ratio then
+                worst_ratio = ratio
+                worst_id = r.id
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+  return worst_id
 end
 
 function M.calculate_xp(base_xp, remaining_hp, streak, combo_mult, double_xp)

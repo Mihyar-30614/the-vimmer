@@ -11,4 +11,7 @@ return {
   target_text = "the right word here",
   base_xp = 70,
   optimal_keystrokes = { "w", "c", "i", "w" },
+  optimal_keystrokes_alternates = {
+    { "w", "c", "a", "w" },
+  },
 }

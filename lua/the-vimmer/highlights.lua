@@ -72,6 +72,8 @@ function M.setup()
   hl(0, "VimmerCrit",         { bg = "#5c4a00", fg = "#ffd700" })
   hl(0, "VimmerComboFire",    { bold = true,    fg = "#ff8c00" })
   hl(0, "VimmerComboCrit",    { bold = true,    fg = "#ff00cc" })
+  hl(0, "VimmerTeachTip",     { fg = "#bcc4ea" })
+  hl(0, "VimmerTeachFoot",    { fg = "#6272a4" })
 end
 
 return M

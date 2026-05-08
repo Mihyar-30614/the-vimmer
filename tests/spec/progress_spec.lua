@@ -151,3 +151,11 @@ describe("progress.reset", function()
     os.remove(tmp)
   end)
 end)
+
+describe("progress.refresh_mutator_unlocks", function()
+  it("unlocks iron when XP crosses threshold", function()
+    local prog = { total_xp = progress.MUTATOR_UNLOCK_XP.iron, unlocked_mutators = {} }
+    progress.refresh_mutator_unlocks(prog)
+    assert.is_true(prog.unlocked_mutators.iron)
+  end)
+end)
