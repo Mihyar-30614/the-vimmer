@@ -29,8 +29,8 @@ local function visible_len(s)
 end
 
 function M.build_diff_line(before_ex, after_ex, max_w)
-  local before_disp = before_ex:gsub("|", "▌")
-  local after_disp = after_ex:gsub("|", "▌")
+  local before_disp = before_ex:gsub("\n", " ↵ "):gsub("|", "▌")
+  local after_disp = after_ex:gsub("\n", " ↵ "):gsub("|", "▌")
   local combined = before_disp .. "  →  " .. after_disp
   if visible_len(combined) <= max_w then
     return { combined }
