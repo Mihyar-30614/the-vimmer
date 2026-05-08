@@ -83,6 +83,7 @@ local function start_flow(room)
         is_boss = room.is_boss,
         fast_clear = fast_clear,
         on_powerup = function(pu_type) g:grant_powerup(pu_type) end,
+        room = room,
       })
   end
 

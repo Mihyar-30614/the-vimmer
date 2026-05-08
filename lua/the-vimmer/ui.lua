@@ -2,6 +2,50 @@ local M = {}
 local api = vim.api
 local progress = require("the-vimmer.progress")
 
+local function format_key(k)
+  if k == "\27"           then return "<Esc>"
+  elseif k == "\r"        then return "<CR>"
+  elseif k == "\n"        then return "<CR>"
+  elseif k == "\t"        then return "<Tab>"
+  elseif k == " "         then return "<Spc>"
+  elseif k == "\x08"      then return "<BS>"
+  else return k end
+end
+
+local function build_optimal_lines(room, inner_width)
+  local result = {}
+  local function wrap_seq(prefix, ks)
+    local parts = {}
+    for _, k in ipairs(ks or {}) do parts[#parts+1] = format_key(k) end
+    local seq = table.concat(parts, " ")
+    local full = prefix .. seq
+    if #full <= inner_width then
+      result[#result+1] = full
+      return
+    end
+    local tokens = vim.split(seq, " ", { plain = true })
+    local line = prefix
+    for _, tok in ipairs(tokens) do
+      local sep = line == prefix and "" or " "
+      if #line + #sep + #tok > inner_width and line ~= prefix then
+        result[#result+1] = line
+        line = "    " .. tok
+      else
+        line = line .. sep .. tok
+      end
+    end
+    if line ~= "" then result[#result+1] = line end
+  end
+  if room.is_boss then
+    for i, phase in ipairs(room.phases or {}) do
+      wrap_seq(string.format("  P%d: ", i), phase.optimal_keystrokes)
+    end
+  else
+    wrap_seq("  ", room.optimal_keystrokes)
+  end
+  return result
+end
+
 local function pad_row(content, width)
   local visible = content:gsub("[\xc2-\xdf][\x80-\xbf]", "_")
     :gsub("[\xe0-\xef][\x80-\xbf][\x80-\xbf]", "_")
@@ -594,6 +638,14 @@ function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_conti
   add(b.row(string.format("  HP Remaining:  %d / 100", hp_remaining)), "VimmerTitle")
   add(b.row(string.format("  Streak:        %d", streak)), "VimmerTierWarrior")
 
+  if opts.room then
+    add(b.sep)
+    add(b.row("  Optimal sequence:"), "VimmerTitle")
+    for _, ln in ipairs(build_optimal_lines(opts.room, 56)) do
+      add(b.row(ln), "VimmerCommand")
+    end
+  end
+
   if unlocked_tier then
     local tier_name = unlocked_tier:lower()
     local tier_grp = ({ warrior = "VimmerTierWarrior", ninja = "VimmerTierNinja" })[tier_name]
@@ -704,6 +756,11 @@ function M.open_death(room, on_retry, on_map)
   add(b.sep)
   add(b.row("  HP reached zero"))
   add(b.row("  Streak lost"))
+  add(b.sep)
+  add(b.row("  Optimal sequence:"), "VimmerTitle")
+  for _, ln in ipairs(build_optimal_lines(room, 36)) do
+    add(b.row(ln), "VimmerCommand")
+  end
   add(b.sep)
   add(b.row("  <Enter> retry   <q> map"))
   add(b.bot)
