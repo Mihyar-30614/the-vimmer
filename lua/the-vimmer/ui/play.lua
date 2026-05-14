@@ -172,6 +172,21 @@ function M.open_play(room, game_state, on_win, on_death)
     end
     lines[#lines+1] = cmd
 
+    local rooms_mod = require("the-vimmer.rooms")
+    local current_phase = room.is_boss and (room.phases[game_state.boss_phase] or {}) or room
+    local goal_view = rooms_mod.phase_view(current_phase).goal
+    if goal_view and goal_view ~= "" then
+      lines[#lines+1] = ""
+      lines[#lines+1] = " GOAL:"
+      hls[#hls+1] = { "VimmerXP", #lines - 1, 1, -1 }
+      local g = " " .. goal_view
+      while #g > max_w do
+        lines[#lines+1] = g:sub(1, max_w)
+        g = " " .. g:sub(max_w + 1)
+      end
+      lines[#lines+1] = g
+    end
+
     api.nvim_buf_set_option(hud_buf, "modifiable", true)
     api.nvim_buf_set_lines(hud_buf, 0, -1, false, lines)
     api.nvim_buf_clear_namespace(hud_buf, _hud_ns, 0, -1)
