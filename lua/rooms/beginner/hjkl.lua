@@ -20,6 +20,7 @@ local one = 1
 local two = 5
 local three = 3]],
   base_xp = 30,
+  time_limit = 60,
   optimal_keystrokes = { "j", "l", "l", "l", "l", "l", "l", "l", "l", "l", "l", "l", "l", "r", "5" },
   optimal_keystrokes_alternates = {
     { "j", "$", "r", "5" },

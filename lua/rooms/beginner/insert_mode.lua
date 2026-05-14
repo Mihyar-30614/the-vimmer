@@ -21,5 +21,6 @@ local M = {
   beta = 2,
 }]],
   base_xp = 50,
+  time_limit = 60,
   optimal_keystrokes = { "o", "b", "e", "t", "a", " ", "=", " ", "2", ",", "\27" },
 }

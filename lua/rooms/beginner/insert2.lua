@@ -10,7 +10,7 @@ return {
   usage_tip = "A puts you at end of line in insert mode. o opens a new line below.",
   filetype = "text",
   cursor_start = { row = 1, col = 1 },
-  time_limit = 60,
+  time_limit = 75,
   goal = "Add header `items:` above, comma to lines 1+2, then `three` below.",
   start_text = [[
 one
