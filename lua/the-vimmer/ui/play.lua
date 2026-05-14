@@ -187,20 +187,29 @@ function M.open_play(room, game_state, on_win, on_death)
   end
 
   local function start_phase(phase_data)
-    local target_lines = vim.split(phase_data.target_text, "\n")
+    local rooms = require("the-vimmer.rooms")
+    local view = rooms.phase_view(phase_data)
+    local target_lines = vim.split(view.target_text, "\n")
 
     api.nvim_buf_set_option(target_buf, "modifiable", true)
     api.nvim_buf_set_lines(target_buf, 0, -1, false, target_lines)
     api.nvim_buf_set_option(target_buf, "modifiable", false)
 
-    api.nvim_buf_set_lines(play_buf, 0, -1, false, vim.split(phase_data.start_text, "\n"))
+    api.nvim_buf_set_lines(play_buf, 0, -1, false, vim.split(view.start_text, "\n"))
 
-    local bo = phase_data.bo or room.bo
+    local bo = view.bo or room.bo
     if type(bo) == "table" then
       for k, v in pairs(bo) do
         vim.bo[play_buf][k] = v
       end
     end
+
+    if view.filetype ~= "" then
+      vim.bo[play_buf].filetype = view.filetype
+      vim.bo[target_buf].filetype = view.filetype
+    end
+
+    pcall(api.nvim_win_set_cursor, play_win, { view.cursor_start.row, view.cursor_start.col - 1 })
 
     local ns = api.nvim_create_namespace("the-vimmer-keys-" .. tostring(game_state.boss_phase))
     _play_ns = ns
