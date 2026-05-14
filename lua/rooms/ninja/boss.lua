@@ -1,4 +1,4 @@
--- Ninja boss: 3-phase gauntlet. Phase 1 = named register yank/paste, Phase 2 = di" text object, Phase 3 = macro+ciw.
+-- Ninja boss: 3-phase Void. Registers + text objects + batch transform.
 return {
   id = "ninja_boss",
   tier = "ninja",
@@ -6,27 +6,58 @@ return {
   command = "registers + text-objects + macros",
   title = "BOSS: The Void",
   description = "Three-phase trial. Registers, text objects, macro composition.",
-  usage_tip = "Yank into named registers, delete with text objects, record complex macros.",
-  base_xp = 600,
-  time_limit = 270,
+  usage_tip = "Yank into named registers, surgically delete with text objects, batch-transform with :norm or cgn+.",
+  base_xp = 700,
+  time_limit = 300,
   phases = {
     {
-      tip = "Phase 1: Yank line 1 into register a, replace line 3 with it",
-      start_text = "alpha\nbeta\n[replace me]",
-      target_text = "alpha\nbeta\nalpha",
-      optimal_keystrokes = { '"', "a", "y", "y", "2", "j", "d", "d", '"', "a", "p" },
+      tip = "Phase 1: Yank line 1 to register a, drop line 4 via black hole, paste at end",
+      filetype = "lua",
+      cursor_start = { row = 1, col = 1 },
+      goal = "Yank line 1 to register a, delete line 4 with \"_dd, paste a at the end.",
+      start_text = [[
+local config = load_default()
+local x = 1
+local y = 2
+local stale = nil
+local z = 3]],
+      target_text = [[
+local config = load_default()
+local x = 1
+local y = 2
+local z = 3
+local config = load_default()]],
+      optimal_keystrokes = { "\"", "a", "y", "y", "4", "G", "\"", "_", "d", "d", "G", "\"", "a", "p" },
     },
     {
-      tip = "Phase 2: Use di\" to strip quotes from each assignment",
-      start_text = 'x = "foo"\ny = "bar"\nz = "baz"',
-      target_text = "x = \"\"\ny = \"\"\nz = \"\"",
-      optimal_keystrokes = { "d", "i", '"', "j", ".", "j", "." },
+      tip = "Phase 2: Clear string, drop parens group, change brace body",
+      filetype = "lua",
+      cursor_start = { row = 1, col = 1 },
+      goal = "Clear \"old\" content, remove (opts) group, change {a} body to {b}.",
+      start_text = [[
+local x = tag("old") and call(opts) and conf({ a })]],
+      target_text = [[
+local x = tag("") and call and conf({ b })]],
+      optimal_keystrokes = { "f", "\"", "d", "i", "\"", "f", "(", "d", "a", "(", "f", "{", "c", "i", "{", " ", "b", " ", "\27" },
     },
     {
-      tip = "Phase 3: Macro + text object to change var to const on all lines",
-      start_text = "var a = 1\nvar b = 2\nvar c = 3\nvar d = 4",
-      target_text = "const a = 1\nconst b = 2\nconst c = 3\nconst d = 4",
-      optimal_keystrokes = { "q", "a", "c", "i", "w", "c", "o", "n", "s", "t", "\27", "j", "q", "3", "@", "a" },
+      tip = "Phase 3: Rename `tmp` to `out` across all 5 occurrences",
+      filetype = "lua",
+      cursor_start = { row = 1, col = 7 },
+      goal = "Rename all 5 occurrences of `tmp` to `out`.",
+      start_text = [[
+local tmp = init()
+local x = tmp * 2
+local y = tmp + 1
+local z = tmp - 3
+return tmp]],
+      target_text = [[
+local out = init()
+local x = out * 2
+local y = out + 1
+local z = out - 3
+return out]],
+      optimal_keystrokes = { "*", "N", "c", "g", "n", "o", "u", "t", "\27", ".", ".", ".", "." },
     },
   },
 }
