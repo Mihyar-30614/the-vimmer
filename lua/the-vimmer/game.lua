@@ -28,29 +28,28 @@ end
 
 function M.new()
   local g = {
-    state = "idle",       -- idle | teaching | playing | results
+    state = "idle",        -- idle | teaching | playing | results
     current_room = nil,
     hp = 100,
-    streak = 0,           -- rooms cleared in a row without dying
-    keys_correct = 0,
-    keys_wrong = 0,
+    streak = 0,            -- rooms cleared in a row without dying
+
+    keystrokes_used = 0,         -- total keys pressed this phase
+    keystrokes_budget = 0,       -- ceil(#optimal_keystrokes * 1.5), or *1.0 under iron
+    keystrokes_over_budget = 0,  -- count of over-budget keys this run (HP-draining)
+
     run_started_at = nil,
-    run_seconds = nil,    -- wall-clock duration of the last run
-    flawless_run = false, -- true when the room was cleared with zero wrong keys
-    timer_death = false,  -- true when time ran out (as opposed to HP hitting 0)
+    run_seconds = nil,     -- wall-clock duration of the last run
+    flawless_run = false,  -- true when cleared with keystrokes_used <= #optimal_keystrokes
+    timer_death = false,   -- true when time ran out (as opposed to HP hitting 0)
 
     last_xp = 0,
-    combo = 0,            -- consecutive correct keys since last mistake
-    combo_mult = 1,       -- XP multiplier derived from combo (1x / 2x / 3x)
-    correct_streak = 0,   -- resets on any wrong key; used for HP regen
-    timer_remaining = nil,-- seconds left; nil = no time limit for this room
-    power_ups = {},       -- at most 2 held at once
+    last_efficiency_mult = 1,    -- recorded by complete_room for HUD/results
+    timer_remaining = nil, -- seconds left; nil = no time limit for this room
+    power_ups = {},        -- at most 2 held at once
     boss_phase = 1,
     boss_total_phases = 0,
 
-    _acceptable_sequences = {}, -- flattened list of valid key sequences for the current phase
-    _seq_active = {},           -- tracks how far along each sequence the player is
-    _mutators = {},             -- active run modifiers (rush, glass, iron…)
+    _mutators = {},        -- active run modifiers (rush, glass, iron…)
   }
 
   -- Replace the mutator table for a new run.
@@ -61,9 +60,15 @@ function M.new()
     end
   end
 
-  -- glass mutator doubles wrong-key HP cost (8 vs 5).
-  function g:_wrong_hp_cost()
+  -- glass mutator doubles over-budget HP cost (8 vs 5).
+  function g:_over_budget_cost()
     return self._mutators.glass and 8 or 5
+  end
+
+  -- iron mutator removes the 50% grace; budget collapses to optimal length.
+  function g:_budget_for(optimal_count)
+    if self._mutators.iron then return optimal_count end
+    return math.ceil(optimal_count * 1.5)
   end
 
   -- Enter the teaching screen; does NOT start the countdown.
