@@ -124,8 +124,10 @@ function M.start_flow(room, flow_opts)
         is_daily = flow_opts.daily == true,
         active_mutators = flow_opts.mutators,
         run_stats = {
-          keys_correct = g.keys_correct,
-          keys_wrong = g.keys_wrong,
+          keystrokes_used = g.keystrokes_used,
+          keystrokes_over_budget = g.keystrokes_over_budget,
+          keystrokes_budget = g.keystrokes_budget,
+          efficiency_mult = g.last_efficiency_mult,
           seconds = run_s,
           flawless = g.flawless_run,
           new_personal_best = new_pb,
@@ -146,7 +148,7 @@ function M.start_flow(room, flow_opts)
     d.callbacks.emit("death", {
       room_id = room.id,
       timed_out = g.timer_death,
-      mistakes = g.keys_wrong,
+      over_budget_count = g.keystrokes_over_budget,
     })
 
     d.ui.open_death(room,
@@ -154,7 +156,7 @@ function M.start_flow(room, flow_opts)
       show_map,
       {
         timed_out = g.timer_death,
-        mistakes = g.keys_wrong,
+        over_budget_count = g.keystrokes_over_budget,
       }
     )
   end
