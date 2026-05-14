@@ -319,26 +319,27 @@ describe("game boss phases", function()
 end)
 
 describe("game mutators", function()
-  it("glass increases HP cost per slip", function()
+  it("glass raises over-budget HP cost to 8", function()
     local g = game.new()
-    g:start_room(make_room())
+    g:start_room(make_room())  -- budget 3
     g:set_mutators({ "glass" })
     g:begin_play()
-    g:register_key("x")
+    for _ = 1, 4 do g:register_key("z") end  -- 1 key over budget
     assert.equals(92, g.hp)
   end)
 
-  it("iron disables triplet micro-heal", function()
+  it("iron removes budget grace (budget = optimal length)", function()
     local g = game.new()
-    g:start_room(make_room({ optimal_keystrokes = { "w" } }))
+    g:start_room(make_room({ optimal_keystrokes = { "w", "b" } }))
     g:set_mutators({ "iron" })
     g:begin_play()
-    g.hp = 90
-    for _ = 1, 3 do g:register_key("w") end
-    assert.equals(90, g.hp)
+    assert.equals(2, g.keystrokes_budget)
+    g:register_key("w"); g:register_key("b"); g:register_key("x")
+    -- third key is the first over budget (budget=2) → -5 HP
+    assert.equals(95, g.hp)
   end)
 
-  it("rush mutator drains timer twice per tick", function()
+  it("rush drains timer twice per tick", function()
     local g = game.new()
     g:start_room(make_room({ time_limit = 60 }))
     g:set_mutators({ "rush" })
