@@ -1,5 +1,5 @@
 -- All Vimmer highlight group definitions and derived helper functions.
--- hp_group / timer_group / combo_group map numeric game state → a highlight group name.
+-- hp_group / timer_group map numeric game state → a highlight group name.
 -- build_diff_line handles multi-byte-safe layout for the teach-screen before→after row.
 -- visible_len counts Unicode codepoints (not bytes) to correctly measure display width.
 local M = {}
@@ -48,14 +48,6 @@ function M.build_diff_line(before_ex, after_ex, max_w)
   return { before_disp, "→  " .. after_disp }
 end
 
--- Return a highlight group for the combo counter, or nil when combo is below 5.
-function M.combo_group(combo)
-  if combo >= 20 then return "VimmerComboCrit"
-  elseif combo >= 10 then return "VimmerComboFire"
-  elseif combo >= 5 then return "VimmerPhase"
-  else return nil end
-end
-
 function M.setup()
   local hl = vim.api.nvim_set_hl
   hl(0, "VimmerTitle",        { bold = true, fg = "#ffffff" })
@@ -79,10 +71,7 @@ function M.setup()
   hl(0, "VimmerBoss",         { bold = true, fg = "#ff79c6" })
   hl(0, "VimmerPhase",        { bold = true, bg = "#44475a", fg = "#ff79c6" })
   hl(0, "VimmerDamage",       { bg = "#5c1010", fg = "#ff8080" })
-  hl(0, "VimmerRegen",        { bg = "#0d3b1a", fg = "#80ff99" })
   hl(0, "VimmerCrit",         { bg = "#5c4a00", fg = "#ffd700" })
-  hl(0, "VimmerComboFire",    { bold = true,    fg = "#ff8c00" })
-  hl(0, "VimmerComboCrit",    { bold = true,    fg = "#ff00cc" })
   hl(0, "VimmerTeachTip",     { fg = "#bcc4ea" })
   hl(0, "VimmerTeachFoot",    { fg = "#6272a4" })
 end

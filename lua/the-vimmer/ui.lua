@@ -818,7 +818,6 @@ function M.open_play(room, game_state, on_win, on_death)
   local initial_time = room.time_limit
   local HUD_W = 24
   local _hud_ns = api.nvim_create_namespace("the-vimmer-hud")
-  local _crit_ns = api.nvim_create_namespace("the-vimmer-crit")
   local hud_feedback_line = nil
 
   local target_buf = api.nvim_create_buf(false, true)

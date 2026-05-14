@@ -1,28 +1,6 @@
 dofile(debug.getinfo(1, "S").source:gsub("@", ""):match("^(.*)/[^/]+$") .. "/helpers.lua")
 local hl = require("the-vimmer.highlights")
 
-describe("highlights.combo_group", function()
-  it("returns nil below combo 5", function()
-    assert.is_nil(hl.combo_group(0))
-    assert.is_nil(hl.combo_group(4))
-  end)
-
-  it("returns VimmerPhase at combo 5-9", function()
-    assert.equals("VimmerPhase", hl.combo_group(5))
-    assert.equals("VimmerPhase", hl.combo_group(9))
-  end)
-
-  it("returns VimmerComboFire at combo 10-19", function()
-    assert.equals("VimmerComboFire", hl.combo_group(10))
-    assert.equals("VimmerComboFire", hl.combo_group(19))
-  end)
-
-  it("returns VimmerComboCrit at combo 20+", function()
-    assert.equals("VimmerComboCrit", hl.combo_group(20))
-    assert.equals("VimmerComboCrit", hl.combo_group(100))
-  end)
-end)
-
 describe("highlights.hp_group", function()
   it("returns VimmerHP_high above 60", function()
     assert.equals("VimmerHP_high", hl.hp_group(100))
