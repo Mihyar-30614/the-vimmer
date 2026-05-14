@@ -113,13 +113,15 @@ function M.weakest_regular_room_id(prog, rooms_by_tier)
   return worst_id
 end
 
--- XP formula: base + HP bonus (up to +100%), +50% for streak >= 3, × combo_mult, × 2 if double.
-function M.calculate_xp(base_xp, remaining_hp, streak, combo_mult, double_xp)
-  combo_mult = combo_mult or 1
+-- XP formula: base + HP bonus (up to +100%), +50% for streak >= 3,
+-- × efficiency_mult, × 2 if double. efficiency_mult is computed by
+-- game.lua as clamp(#optimal_keystrokes / keystrokes_used, 0.5, 3.0).
+function M.calculate_xp(base_xp, remaining_hp, streak, efficiency_mult, double_xp)
+  efficiency_mult = efficiency_mult or 1
   local hp_bonus = math.floor(remaining_hp / 100 * base_xp)
   local subtotal = base_xp + hp_bonus
   local streak_bonus = (streak >= 3) and math.floor(subtotal * 0.5) or 0
-  local total = (subtotal + streak_bonus) * combo_mult
+  local total = (subtotal + streak_bonus) * efficiency_mult
   if double_xp then total = total * 2 end
   return math.floor(total)
 end
