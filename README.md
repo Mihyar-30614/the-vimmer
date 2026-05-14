@@ -35,6 +35,7 @@ Die (HP → 0): room restarts, streak resets.
   "mihyar-30614/the-vimmer",
   config = function()
     require("the-vimmer").setup({
+      colorblind = false, -- set true for a deuteranopia-safe palette
       -- Optional lifecycle hooks (payload tables documented below)
       hooks = {
         win = function(ev)
