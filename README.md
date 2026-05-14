@@ -148,3 +148,17 @@ Tests use [busted](https://lunarmodules.github.io/busted/). Game logic (XP, HP, 
 luarocks install busted --local
 ~/.luarocks/bin/busted tests/spec/
 ```
+
+### Reachability harness
+
+For rooms with a `goal` field set, a separate harness verifies that the
+declared `optimal_keystrokes` (and each alternate) actually transform
+`start_text` into `target_text`. It runs inside headless nvim:
+
+```bash
+nvim --headless --noplugin -l tests/reachability.lua
+```
+
+Exit code 0 = all checked sequences pass. Non-zero with per-room diagnostics
+on stderr if any sequence fails. Rooms without `goal` are skipped (legacy
+fragment-style `optimal_keystrokes`). Pass `--all` to force-check every room.
