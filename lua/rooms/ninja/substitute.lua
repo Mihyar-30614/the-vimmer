@@ -1,16 +1,29 @@
--- Ninja room: :%s/old/new/g (global substitute). Player replaces all occurrences with a single ex command.
+-- Ninja room: :%s. Rename multiple occurrences with one ex command.
 return {
   id = "ninja_substitute",
   tier = "ninja",
   command = ":%s/old/new/g",
   title = "Global Substitute",
-  description = ":%s/pattern/replacement/g replaces all occurrences in the file",
-  before_example = ":%s/hello/goodbye/g",
-  after_example = "goodbye world …",
+  description = ":%s/pattern/replacement/g replaces all occurrences in the file.",
   usage_tip = "% means whole file. g flag means all occurrences per line. Omit g for first only.",
-  start_text = "hello world\nhello vim\nhello neovim",
-  target_text = "goodbye world\ngoodbye vim\ngoodbye neovim",
-  base_xp = 105,
-  time_limit = 55,
-  optimal_keystrokes = { ":", "%", "s", "/", "h", "e", "l", "l", "o", "/", "g", "o", "o", "d", "b", "y", "e", "/", "g", "\r" },
+  before_example = "hello world|",
+  after_example = "goodbye world|",
+  filetype = "lua",
+  cursor_start = { row = 1, col = 1 },
+  time_limit = 60,
+  goal = "Replace every `bug` with `ok` (5 occurrences).",
+  start_text = [[
+local a = "bug"
+local b = "bug"
+local c = "x"
+local d = "bug bug"
+local e = "bug"]],
+  target_text = [[
+local a = "ok"
+local b = "ok"
+local c = "x"
+local d = "ok ok"
+local e = "ok"]],
+  base_xp = 120,
+  optimal_keystrokes = { ":", "%", "s", "/", "b", "u", "g", "/", "o", "k", "/", "g", "\r" },
 }
