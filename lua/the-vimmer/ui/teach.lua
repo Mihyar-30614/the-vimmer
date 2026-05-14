@@ -33,6 +33,9 @@ function M.open_teach(room, flow_opts_or_cb, maybe_cb)
     add(b.sep)
     for i, phase in ipairs(room.phases) do
       common.add_wrapped_prefixed(add, b.row, string.format("  PHASE %d: ", i), phase.tip or "", width, "VimmerCommand")
+      if phase.goal and phase.goal ~= "" then
+        common.add_wrapped_prefixed(add, b.row, "  GOAL:   ", phase.goal:gsub("\n", " ↵ "), width, "VimmerXP")
+      end
       common.add_wrapped_prefixed(add, b.row, "  BEFORE: ", phase.start_text:gsub("\n", " ↵ "), width, "VimmerLocked")
       common.add_wrapped_prefixed(add, b.row, "  AFTER:  ", phase.target_text:gsub("\n", " ↵ "), width, "VimmerCleared")
       if i < #room.phases then add(b.row("")) end
@@ -40,6 +43,9 @@ function M.open_teach(room, flow_opts_or_cb, maybe_cb)
   else
     common.add_wrapped_prefixed(add, b.row, "  ", room.command:gsub("\n", " ↵ "), width, "VimmerCommand")
     common.add_wrapped_prefixed(add, b.row, "  ", room.description:gsub("\n", " ↵ "), width, "VimmerTitle")
+    if room.goal and room.goal ~= "" then
+      common.add_wrapped_prefixed(add, b.row, "  GOAL: ", room.goal:gsub("\n", " ↵ "), width, "VimmerXP")
+    end
     add(b.sep)
     local inner_example_w = width - 4
     local diff_lines = hl.build_diff_line(room.before_example, room.after_example, inner_example_w)
