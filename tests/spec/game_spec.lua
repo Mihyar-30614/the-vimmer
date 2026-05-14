@@ -355,23 +355,58 @@ describe("game mutators", function()
   end)
 end)
 
-describe("game.complete_room with combo_mult", function()
-  it("applies combo_mult to XP", function()
+describe("game.complete_room efficiency multiplier", function()
+  it("optimal-length play sets efficiency_mult to 1.0 (and flawless)", function()
     local g = game.new()
-    g:start_room(make_room({ base_xp = 50 })); g:begin_play()
-    g.combo_mult = 2
+    g:start_room(make_room({ optimal_keystrokes = { "w", "b" }, base_xp = 50 }))
+    g:begin_play()
+    g:register_key("w"); g:register_key("b")
     g:complete_room()
-    local progress = require("the-vimmer.progress")
-    local base = progress.calculate_xp(50, 100, 0, 2, false)
-    assert.equals(math.floor(base * 1.15), g.last_xp)
+    assert.equals(1, g.last_efficiency_mult)
+    assert.is_true(g.flawless_run)
+    -- base 50 + hp_bonus 50 = 100; flawless x1.15 = 115
+    assert.equals(115, g.last_xp)
+  end)
+
+  it("half-as-efficient play caps mult at 0.5", function()
+    local g = game.new()
+    g:start_room(make_room({ optimal_keystrokes = { "w" }, base_xp = 50 }))
+    g:begin_play()
+    -- budget = ceil(1 * 1.5) = 2
+    for _ = 1, 10 do g:register_key("z") end  -- 8 over budget, hp drained to 100-8*5=60
+    g:complete_room()
+    assert.is_false(g.flawless_run)
+    assert.equals(0.5, g.last_efficiency_mult)
+  end)
+
+  it("super-efficient play (impossible-short) caps mult at 3.0", function()
+    -- Force the math by manipulating keystrokes_used directly.
+    local g = game.new()
+    g:start_room(make_room({ optimal_keystrokes = { "a","b","c","d","e","f" }, base_xp = 50 }))
+    g:begin_play()
+    g.keystrokes_used = 1
+    g:complete_room()
+    assert.equals(3, g.last_efficiency_mult)
+  end)
+
+  it("zero keystrokes (defensive) treats efficiency as 1.0", function()
+    local g = game.new()
+    g:start_room(make_room({ optimal_keystrokes = { "w" }, base_xp = 50 }))
+    g:begin_play()
+    g:complete_room()  -- never called register_key
+    assert.equals(1, g.last_efficiency_mult)
+    assert.is_true(g.flawless_run)
   end)
 
   it("double_xp power-up doubles XP and is consumed", function()
     local g = game.new()
-    g:start_room(make_room({ base_xp = 50 })); g:begin_play()
+    g:start_room(make_room({ optimal_keystrokes = { "w" }, base_xp = 50 }))
+    g:begin_play()
+    g:register_key("w")
     g.power_ups = { { type = "double_xp" } }
     g:complete_room()
     local progress = require("the-vimmer.progress")
+    -- efficiency_mult = 1, double_xp doubles, flawless x1.15
     local base = progress.calculate_xp(50, 100, 0, 1, true)
     assert.equals(math.floor(base * 1.15), g.last_xp)
     assert.equals(0, #g.power_ups)

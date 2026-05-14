@@ -159,8 +159,8 @@ function M.new()
     self:_reset_keystroke_budget()
   end
 
-  -- Finalise the room: calculate XP (with optional double_xp power-up),
-  -- record wall-clock time, and check for a flawless bonus (+15%).
+  -- Finalise the room: compute efficiency_mult, calculate XP (with optional double_xp),
+  -- record wall-clock time, and apply the flawless bonus.
   function g:complete_room()
     if not self.current_room then return end
     local progress = require("the-vimmer.progress")
@@ -172,15 +172,28 @@ function M.new()
         break
       end
     end
+
+    local optimal_count = #self:_phase_optimal()
+    local used = self.keystrokes_used
+    local mult
+    if used == 0 or optimal_count == 0 then
+      mult = 1
+    else
+      mult = optimal_count / used
+      if mult < 0.5 then mult = 0.5 end
+      if mult > 3 then mult = 3 end
+    end
+    self.last_efficiency_mult = mult
+
     self.last_xp = progress.calculate_xp(
       self.current_room.base_xp,
       self.hp,
       self.streak,
-      self.combo_mult,
+      mult,
       double
     )
     self.run_seconds = self.run_started_at and math.max(0, os.clock() - self.run_started_at) or nil
-    self.flawless_run = self.keys_wrong == 0
+    self.flawless_run = (used <= optimal_count)
     if self.flawless_run then
       self.last_xp = math.floor(self.last_xp * 1.15)
     end
