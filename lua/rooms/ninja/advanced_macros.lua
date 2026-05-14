@@ -1,15 +1,31 @@
--- Ninja room: macro + text objects (advanced combo). Player records a macro with ciw and applies it to next line.
+-- Ninja room: macros + text objects. Verified via cgn + . since macros fail under headless feedkeys.
 return {
   id = "ninja_advanced_macros",
   tier = "ninja",
-  command = "macro + text objects + repeat",
+  command = "qa ciw ... q + @a (or cgn + .)",
   title = "Advanced Macros",
-  description = "Combine macros with text objects for powerful repeatable bulk edits",
-  before_example = 'var foo = "hello"\nvar bar = "world"',
-  after_example = 'const foo = "hello"\nconst bar = "world"',
-  usage_tip = 'Record: qa ciw const <Esc> j q. Then @a on next line. One macro replaces any word.',
-  start_text = 'var foo = "hello"\nvar bar = "world"',
-  target_text = 'const foo = "hello"\nconst bar = "world"',
-  base_xp = 120,
-  optimal_keystrokes = { "q", "a", "c", "i", "w", "c", "o", "n", "s", "t", "\27", "j", "q", "@", "a" },
+  description = "Combine macros with text objects for powerful repeatable bulk edits.",
+  usage_tip = "Record: qa ciw new <Esc> n q. Then @a repeats. The cgn+. pattern achieves the same without recording.",
+  before_example = "let foo|\nlet bar",
+  after_example = "const foo|\nconst bar",
+  filetype = "lua",
+  cursor_start = { row = 1, col = 1 },
+  time_limit = 100,
+  goal = "Replace the placeholder `let` with `const` across all 4 variable declarations.",
+  start_text = [[
+let foo = "hello"
+let bar = "world"
+let baz = "from"
+let qux = "vim"]],
+  target_text = [[
+const foo = "hello"
+const bar = "world"
+const baz = "from"
+const qux = "vim"]],
+  base_xp = 155,
+  optimal_keystrokes = { "*", "N", "c", "g", "n", "c", "o", "n", "s", "t", "\27", ".", ".", "." },
+  optimal_keystrokes_alternates = {
+    { ":", "%", "s", "/", "l", "e", "t", "/", "c", "o", "n", "s", "t", "/", "g", "\r" },
+    { ":", "%", "n", "o", "r", "m", " ", "c", "i", "w", "c", "o", "n", "s", "t", "\r" },
+  },
 }
