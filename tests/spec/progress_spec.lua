@@ -201,6 +201,54 @@ describe("progress.record_clear_run new schema", function()
   end)
 end)
 
+describe("progress.weakest_regular_room_id with waste ratio", function()
+  it("picks room with highest over-budget ratio among unlocked tiers", function()
+    local rooms_by_tier = {
+      beginner = {
+        { id = "beginner_a", is_boss = false },
+        { id = "beginner_b", is_boss = false },
+      },
+    }
+    local prog = {
+      cleared = {},
+      room_stats = {
+        beginner_a = {
+          attempts = 3, clears = 2, deaths = 0, flawless_clears = 0,
+          keystrokes_used = 50, keystrokes_over_budget = 5,
+        },
+        beginner_b = {
+          attempts = 3, clears = 1, deaths = 1, flawless_clears = 0,
+          keystrokes_used = 30, keystrokes_over_budget = 15,
+        },
+      },
+    }
+    assert.equals("beginner_b", progress.weakest_regular_room_id(prog, rooms_by_tier))
+  end)
+
+  it("skips bosses and rooms with zero attempts", function()
+    local rooms_by_tier = {
+      beginner = {
+        { id = "beginner_a", is_boss = false },
+        { id = "beginner_boss", is_boss = true },
+      },
+    }
+    local prog = {
+      cleared = {},
+      room_stats = {
+        beginner_a = {
+          attempts = 1, clears = 1, deaths = 0, flawless_clears = 0,
+          keystrokes_used = 10, keystrokes_over_budget = 0,
+        },
+        beginner_boss = {
+          attempts = 1, clears = 0, deaths = 1, flawless_clears = 0,
+          keystrokes_used = 100, keystrokes_over_budget = 50,
+        },
+      },
+    }
+    assert.equals("beginner_a", progress.weakest_regular_room_id(prog, rooms_by_tier))
+  end)
+end)
+
 describe("progress.load migrates legacy room_stats", function()
   it("converts keys_correct + keys_wrong to keystrokes_used", function()
     local tmp = os.tmpname() .. ".json"

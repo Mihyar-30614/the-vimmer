@@ -83,11 +83,11 @@ function M.refresh_mutator_unlocks(prog)
   end
 end
 
--- Find the regular room where (keys_correct / total_keys) is lowest across all unlocked tiers.
--- Used by the map and progress screens to suggest a practice target.
+-- Find the regular room with the worst keystroke-waste ratio across all unlocked tiers.
+-- "Waste" = keystrokes_over_budget / keystrokes_used. Highest waste = weakest room.
 function M.weakest_regular_room_id(prog, rooms_by_tier)
   local tiers = require("the-vimmer.rooms").all_tiers()
-  local worst_id, worst_ratio = nil, 1.0001
+  local worst_id, worst_waste = nil, -1
   for _, tier in ipairs(tiers) do
     local list = rooms_by_tier[tier] or {}
     local prereq_tier = ({ warrior = "beginner", ninja = "warrior" })[tier]
@@ -96,14 +96,11 @@ function M.weakest_regular_room_id(prog, rooms_by_tier)
       for _, r in ipairs(list) do
         if not r.is_boss then
           local st = prog.room_stats and prog.room_stats[r.id]
-          if st and st.attempts > 0 then
-            local denom = st.keys_correct + st.keys_wrong
-            if denom > 0 then
-              local ratio = st.keys_correct / denom
-              if ratio < worst_ratio then
-                worst_ratio = ratio
-                worst_id = r.id
-              end
+          if st and st.attempts > 0 and (st.keystrokes_used or 0) > 0 then
+            local waste = (st.keystrokes_over_budget or 0) / st.keystrokes_used
+            if waste > worst_waste then
+              worst_waste = waste
+              worst_id = r.id
             end
           end
         end
