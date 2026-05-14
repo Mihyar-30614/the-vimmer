@@ -993,17 +993,15 @@ function M.open_play(room, game_state, on_win, on_death)
       end
       if api.nvim_get_current_win() ~= play_win then return end
 
-      local prev_streak = game_state.correct_streak
       local hp_before = game_state.hp
       game_state:register_key(key)
       local lost_hp = game_state.hp < hp_before
-      local is_correct = game_state.correct_streak > prev_streak
-      local regen_tick = is_correct and (game_state.correct_streak % 3 == 0)
       update_hud()
 
       if lost_hp then
         hud_pulse_feedback(string.format(
-          "-%d HP  (%s)", hp_before - game_state.hp, format_key(key)))
+          "-%d HP  (over budget)", hp_before - game_state.hp))
+        flash(play_buf, "VimmerDamage", 80)
       end
 
       if game_state:is_dead() then
@@ -1015,22 +1013,6 @@ function M.open_play(room, game_state, on_win, on_death)
           }, on_death)
         end)
         return
-      end
-
-      if not is_correct then
-        flash(play_buf, "VimmerDamage", 80)
-      elseif regen_tick then
-        flash(play_buf, "VimmerRegen", 80)
-      end
-
-      if is_correct and api.nvim_win_is_valid(play_win) then
-        local row = api.nvim_win_get_cursor(play_win)[1] - 1
-        api.nvim_buf_add_highlight(play_buf, _crit_ns, "VimmerCrit", row, 0, -1)
-        vim.defer_fn(function()
-          if api.nvim_buf_is_valid(play_buf) then
-            api.nvim_buf_clear_namespace(play_buf, _crit_ns, 0, -1)
-          end
-        end, 120)
       end
 
       vim.schedule(function()
