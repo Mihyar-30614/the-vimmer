@@ -10,7 +10,7 @@ return {
   after_example = "beta|\nalpha",
   filetype = "lua",
   cursor_start = { row = 1, col = 1 },
-  time_limit = 80,
+  time_limit = 100,
   goal = "Swap line 1 and line 3 using registers `a` and `b`.",
   start_text = [[
 local first = 1

@@ -10,7 +10,7 @@ return {
   after_example = "fn(|)",
   filetype = "lua",
   cursor_start = { row = 1, col = 1 },
-  time_limit = 75,
+  time_limit = 90,
   goal = "Clear args inside `()`, remove the `[bad]` index entirely, and replace `{old}` body with `{new}`.",
   start_text = [[
 local result = compute(a, b, c)

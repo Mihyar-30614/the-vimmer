@@ -10,7 +10,7 @@ return {
   after_example = 'tag("")|',
   filetype = "lua",
   cursor_start = { row = 1, col = 1 },
-  time_limit = 70,
+  time_limit = 85,
   goal = "Clear the `\"old\"` string content, remove the `(opts)` group entirely, change `{a}` body to `{b}`.",
   start_text = [[
 local x = tag("old") and call(opts) and conf({ a })]],
