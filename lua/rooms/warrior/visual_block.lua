@@ -1,16 +1,28 @@
--- Warrior room: Ctrl-v + I (visual block insert). Player prefixes all 5 lines simultaneously.
+-- Warrior room: <C-v> + I. Insert a comment prefix on multiple lines at once.
 return {
   id = "warrior_visual_block",
   tier = "warrior",
   command = "<C-v> + I",
   title = "Visual Block Insert",
-  description = "Ctrl-v selects a vertical block. I inserts at every selected line simultaneously.",
-  before_example = "|item one\nitem two",
-  after_example = "|- item one\n- item two",
+  description = "<C-v> selects a vertical block. I inserts at every selected line simultaneously.",
   usage_tip = "<C-v> enters visual block. Select lines with j. I to insert. <Esc> applies to all.",
-  start_text = "item one\nitem two\nitem three\nitem four\nitem five",
-  target_text = "- item one\n- item two\n- item three\n- item four\n- item five",
-  base_xp = 85,
-  time_limit = 45,
-  optimal_keystrokes = { "\22", "4", "j", "I", "-", " ", "\27" },
+  before_example = "a()\nb()\nc()|",
+  after_example = "// a()\n// b()\n// c()|",
+  filetype = "javascript",
+  cursor_start = { row = 1, col = 1 },
+  time_limit = 50,
+  goal = "Comment out the three function calls by prefixing each with `// `.",
+  start_text = [[
+fetchUser();
+loadCache();
+syncQueue();]],
+  target_text = [[
+// fetchUser();
+// loadCache();
+// syncQueue();]],
+  base_xp = 100,
+  optimal_keystrokes = { "\22", "j", "j", "I", "/", "/", " ", "\27" },
+  optimal_keystrokes_alternates = {
+    { "I", "/", "/", " ", "\27", "j", ".", "j", "." },
+  },
 }
