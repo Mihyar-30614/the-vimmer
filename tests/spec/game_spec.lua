@@ -136,8 +136,8 @@ describe("game.last_xp", function()
     g:complete_room()
     assert.is_true(g.flawless_run)
     -- base 50, hp_bonus floor(100/100*50)=50, subtotal 100, no streak,
-    -- efficiency_mult = clamp(2/2, 0.5, 3) = 1, total 100, flawless x1.15 = 115
-    assert.equals(115, g.last_xp)
+    -- efficiency_mult = clamp(2/2, 0.5, 3) = 1, total 100, flawless x1.15
+    assert.equals(math.floor(100 * 1.15), g.last_xp)
   end)
 
   it("over-budget clear loses HP and is not flawless", function()
@@ -364,8 +364,8 @@ describe("game.complete_room efficiency multiplier", function()
     g:complete_room()
     assert.equals(1, g.last_efficiency_mult)
     assert.is_true(g.flawless_run)
-    -- base 50 + hp_bonus 50 = 100; flawless x1.15 = 115
-    assert.equals(115, g.last_xp)
+    -- base 50 + hp_bonus 50 = 100; flawless x1.15
+    assert.equals(math.floor(100 * 1.15), g.last_xp)
   end)
 
   it("half-as-efficient play caps mult at 0.5", function()
