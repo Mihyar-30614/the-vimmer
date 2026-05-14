@@ -1126,18 +1126,20 @@ function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_conti
 
   local rs = opts.run_stats
   if rs then
-    local hits = rs.keys_correct or 0
-    local miss = rs.keys_wrong or 0
-    local denom = hits + miss
-    local show_keys = denom > 0
+    local used = rs.keystrokes_used or 0
+    local over = rs.keystrokes_over_budget or 0
+    local budget = rs.keystrokes_budget or 0
+    local mult = rs.efficiency_mult or 1
+    local show_keys = used > 0
     local show_time = rs.seconds ~= nil and rs.seconds > 0
     if show_keys or show_time then
       add(b.sep)
       if show_keys then
-        local pct = math.floor(hits * 100 / denom + 0.5)
         add(b.row(string.format(
-          "  Key discipline: %d on-pattern · %d off  (%d%% taught)",
-          hits, miss, pct)), "VimmerTitle")
+          "  Keystrokes: %d used  ·  budget %d  ·  %d over",
+          used, budget, over)), "VimmerTitle")
+        add(b.row(string.format(
+          "  Efficiency multiplier: x%.2f", mult)), "VimmerXP")
       end
       if show_time then
         local t = fmt_run_seconds(rs.seconds)
@@ -1285,9 +1287,9 @@ function M.open_death(room, on_retry, on_map, death_opts)
   else
     add(b.row("  HP reached zero"), "VimmerDeath")
   end
-  local mistakes = death_opts.mistakes or 0
-  if mistakes > 0 then
-    add(b.row(string.format("  Off-pattern keys: %d", mistakes)), "VimmerLocked")
+  local over_budget = death_opts.over_budget_count or 0
+  if over_budget > 0 then
+    add(b.row(string.format("  Over-budget keys: %d", over_budget)), "VimmerLocked")
   end
   add(b.row("  Streak lost"))
   add(b.sep)
