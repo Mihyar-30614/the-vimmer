@@ -1,19 +1,29 @@
--- Warrior room: gU/gu (case operators). Player lowercases an accidental ALL-CAPS line with guu.
+-- Warrior room: gU / gu. Upcase SQL keywords scattered across a query.
 return {
   id = "warrior_case_ops",
   tier = "warrior",
-  command = "gU{motion} / gu{motion}",
+  command = "gU{motion} / gu{motion} / guu",
   title = "Case Operators: gU, gu",
-  description = "gU uppercases, gu lowercases. Combine with any motion or double for whole line: gUU / guu",
-  before_example = "|ALL CAPS MISTAKE",
-  after_example = "|all caps mistake",
+  description = "gU uppercases, gu lowercases. Combine with any motion or double for whole line: gUU / guu.",
   usage_tip = "guu = lowercase line, gUU = uppercase line. gUw = uppercase next word. g~ toggles case.",
-  start_text = "ALL CAPS MISTAKE",
-  target_text = "all caps mistake",
-  base_xp = 70,
-  optimal_keystrokes = { "g", "u", "u" },
+  before_example = "|select",
+  after_example = "|SELECT",
+  filetype = "sql",
+  cursor_start = { row = 1, col = 1 },
+  time_limit = 60,
+  goal = "Uppercase the SQL keywords `select`, `from`, `where`.",
+  start_text = [[
+select id, name
+from users
+where active = true]],
+  target_text = [[
+SELECT id, name
+FROM users
+WHERE active = true]],
+  base_xp = 85,
+  optimal_keystrokes = { "g", "U", "w", "j", "0", "g", "U", "w", "j", "0", "g", "U", "w" },
   optimal_keystrokes_alternates = {
-    { "g", "u", "$" },
-    { "g", "~", "~" },
+    { "g", "U", "i", "w", "j", "0", "g", "U", "i", "w", "j", "0", "g", "U", "i", "w" },
+    { "v", "e", "U", "j", "0", "v", "e", "U", "j", "0", "v", "e", "U" },
   },
 }
