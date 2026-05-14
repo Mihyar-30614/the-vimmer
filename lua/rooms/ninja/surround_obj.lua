@@ -1,16 +1,21 @@
--- Ninja room: di"/da(/ci{ (text object deletion). Player deletes inside quoted strings using text objects.
+-- Ninja room: di" / da( / ci{. Delete inside quotes, delete around parens, change inside braces.
 return {
   id = "ninja_surround_obj",
   tier = "ninja",
   command = "di\" / da( / ci{",
   title = "Text Object Deletion",
   description = "di<x> deletes inside delimiter. da<x> deletes including the delimiter itself.",
-  before_example = 'fn(compute("|hello", (x+1)))',
-  after_example = 'fn(compute("|hello", ()))',
-  usage_tip = 'di" deletes inside quotes leaving them. da" deletes quotes too. ci" changes inside.',
-  start_text = 'fn(compute("hello", (x + 1)))',
-  target_text = 'fn(compute("hello", ()))',
-  base_xp = 120,
-  time_limit = 60,
-  optimal_keystrokes = { "2", "f", "(", "d", "i", "(" },
+  usage_tip = "di\" deletes inside quotes leaving them. da\" deletes quotes too. ci\" changes inside.",
+  before_example = 'tag("old")|',
+  after_example = 'tag("")|',
+  filetype = "lua",
+  cursor_start = { row = 1, col = 1 },
+  time_limit = 70,
+  goal = "Clear the `\"old\"` string content, remove the `(opts)` group entirely, change `{a}` body to `{b}`.",
+  start_text = [[
+local x = tag("old") and call(opts) and conf({ a })]],
+  target_text = [[
+local x = tag("") and call and conf({ b })]],
+  base_xp = 125,
+  optimal_keystrokes = { "f", "\"", "d", "i", "\"", "f", "(", "d", "a", "(", "f", "{", "c", "i", "{", " ", "b", " ", "\27" },
 }
