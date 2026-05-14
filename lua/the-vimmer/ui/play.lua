@@ -30,6 +30,31 @@ local function show_phase_banner(win, phase_num, callback)
   end, 800)
 end
 
+-- Apply plugin-isolation settings to a scratch buffer used for room play.
+-- Sets buftype, disables common plugin behaviors, and detaches LSP clients.
+local function apply_buffer_hygiene(buf)
+  api.nvim_buf_set_option(buf, "buftype", "nofile")
+  api.nvim_buf_set_option(buf, "swapfile", false)
+  api.nvim_buf_set_option(buf, "undolevels", 1000)
+  for _, flag in ipairs({
+    "minipairs_disable",
+    "autopairs_disable",
+    "copilot_enabled",
+    "copilot_disable",
+    "ai_enabled",
+  }) do
+    pcall(api.nvim_buf_set_var, buf, flag, flag == "copilot_enabled" and 0 or 1)
+  end
+  if vim.lsp and vim.lsp.get_clients then
+    local ok, clients = pcall(vim.lsp.get_clients, { bufnr = buf })
+    if ok and type(clients) == "table" then
+      for _, client in ipairs(clients) do
+        pcall(vim.lsp.buf_detach_client, buf, client.id)
+      end
+    end
+  end
+end
+
 function M.open_play(room, game_state, on_win, on_death)
   M._close_play()
   local hl = require("the-vimmer.highlights")
@@ -40,9 +65,11 @@ function M.open_play(room, game_state, on_win, on_death)
 
   local target_buf = api.nvim_create_buf(false, true)
   api.nvim_buf_set_option(target_buf, "bufhidden", "wipe")
+  apply_buffer_hygiene(target_buf)
 
   local play_buf = api.nvim_create_buf(false, true)
   api.nvim_buf_set_option(play_buf, "bufhidden", "wipe")
+  apply_buffer_hygiene(play_buf)
 
   local hud_buf = api.nvim_create_buf(false, true)
   api.nvim_buf_set_option(hud_buf, "bufhidden", "wipe")
@@ -207,6 +234,10 @@ function M.open_play(room, game_state, on_win, on_death)
     if view.filetype ~= "" then
       vim.bo[play_buf].filetype = view.filetype
       vim.bo[target_buf].filetype = view.filetype
+      vim.schedule(function()
+        if api.nvim_buf_is_valid(play_buf) then apply_buffer_hygiene(play_buf) end
+        if api.nvim_buf_is_valid(target_buf) then apply_buffer_hygiene(target_buf) end
+      end)
     end
 
     pcall(api.nvim_win_set_cursor, play_win, { view.cursor_start.row, view.cursor_start.col - 1 })
