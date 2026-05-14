@@ -7,6 +7,9 @@ local M = {}
 
 local TIERS = { "beginner", "warrior", "ninja" }
 
+-- Cache of validated rooms per tier; populated lazily by load_tier, reset via clear_cache.
+local _tier_cache = {}
+
 local REQUIRED_FIELDS = {
   "id", "tier", "command", "title", "description",
   "before_example", "after_example", "usage_tip",
@@ -110,8 +113,11 @@ local function collect_runtime_room_paths(tier)
   return paths
 end
 
--- Load and validate all rooms for a tier; duplicate IDs are skipped with a warning.
+-- Load and validate all rooms for a tier. Cached; call clear_cache to force a reload.
+-- Duplicate room IDs are silently skipped (typically room-pack vs built-in overlap).
 function M.load_tier(tier)
+  if _tier_cache[tier] then return _tier_cache[tier] end
+
   local builtin_dir = rooms_dir() .. "/" .. tier
   local files = list_lua_files(builtin_dir)
   for _, fp in ipairs(collect_runtime_room_paths(tier)) do
@@ -125,11 +131,7 @@ function M.load_tier(tier)
     local ok, room = pcall(dofile, filepath)
     if ok and type(room) == "table" and M.validate(room) then
       if seen_ids[room.id] then
-        if vim and vim.notify then
-          vim.notify(
-            "the-vimmer: skipping duplicate room id '" .. room.id .. "' in " .. filepath,
-            vim.log.levels.WARN)
-        end
+        -- silent: duplicates are typically room-pack vs built-in overlap, not user-facing
       else
         seen_ids[room.id] = true
         result[#result + 1] = room
@@ -138,7 +140,13 @@ function M.load_tier(tier)
       vim.notify("the-vimmer: skipping invalid room: " .. filepath, vim.log.levels.WARN)
     end
   end
+
+  _tier_cache[tier] = result
   return result
+end
+
+function M.clear_cache()
+  _tier_cache = {}
 end
 
 -- Find a room by ID, scanning all tiers. Returns nil if not found.

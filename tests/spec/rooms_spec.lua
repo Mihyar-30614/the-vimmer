@@ -119,3 +119,22 @@ describe("rooms.all_tiers", function()
     assert.equals("ninja", tiers[3])
   end)
 end)
+
+describe("rooms.load_tier cache", function()
+  before_each(function()
+    if rooms.clear_cache then rooms.clear_cache() end
+  end)
+
+  it("returns the same table on repeat calls", function()
+    local a = rooms.load_tier("beginner")
+    local b = rooms.load_tier("beginner")
+    assert.is_true(a == b, "expected identical table reference on second call")
+  end)
+
+  it("clear_cache forces a fresh load (different table identity)", function()
+    local a = rooms.load_tier("beginner")
+    rooms.clear_cache()
+    local b = rooms.load_tier("beginner")
+    assert.is_false(a == b, "expected fresh table after clear_cache")
+  end)
+end)
