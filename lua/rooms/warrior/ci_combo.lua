@@ -10,7 +10,7 @@ return {
   usage_tip = 'ci" changes inside double quotes. ci( changes inside parens.',
   filetype = "lua",
   cursor_start = { row = 2, col = 1 },
-  time_limit = 60,
+  time_limit = 90,
   goal = "Replace the log tag `old` with `new`, then replace the arg list `old, a, b` with `new, x, y`.",
   start_text = [[
 local function emit()
