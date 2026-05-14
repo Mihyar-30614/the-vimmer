@@ -295,3 +295,34 @@ describe("rooms.validate boss phase optional fields", function()
     assert.is_false(rooms.validate(r))
   end)
 end)
+
+describe("rooms.phase_view", function()
+  it("returns defaults when fields absent", function()
+    local v = rooms.phase_view({
+      start_text = "x", target_text = "y",
+      optimal_keystrokes = { "w" },
+    })
+    assert.equals("", v.filetype)
+    assert.same({ row = 1, col = 1 }, v.cursor_start)
+    assert.is_nil(v.goal)
+    assert.equals("x", v.start_text)
+    assert.equals("y", v.target_text)
+  end)
+
+  it("passes through provided values", function()
+    local v = rooms.phase_view({
+      start_text = "x", target_text = "y",
+      optimal_keystrokes = { "w" },
+      filetype = "lua",
+      cursor_start = { row = 4, col = 2 },
+      goal = "G",
+      bo = { shiftwidth = 4 },
+      optimal_keystrokes_alternates = { { "a" } },
+    })
+    assert.equals("lua", v.filetype)
+    assert.same({ row = 4, col = 2 }, v.cursor_start)
+    assert.equals("G", v.goal)
+    assert.same({ shiftwidth = 4 }, v.bo)
+    assert.same({ { "a" } }, v.optimal_keystrokes_alternates)
+  end)
+end)

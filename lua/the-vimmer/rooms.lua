@@ -90,6 +90,21 @@ function M.validate(room)
   return true
 end
 
+-- Return a normalized view of a room or boss-phase context with defaults applied.
+-- UI calls this so it never needs to branch on missing optional fields.
+function M.phase_view(ctx)
+  return {
+    filetype = ctx.filetype or "",
+    cursor_start = ctx.cursor_start or { row = 1, col = 1 },
+    goal = ctx.goal,
+    start_text = ctx.start_text,
+    target_text = ctx.target_text,
+    optimal_keystrokes = ctx.optimal_keystrokes,
+    optimal_keystrokes_alternates = ctx.optimal_keystrokes_alternates,
+    bo = ctx.bo,
+  }
+end
+
 -- Return a flat list of all valid key sequences for a room/phase context.
 -- Primary sequence first, then alternates. game.lua tracks progress through each simultaneously.
 function M.acceptable_key_sequences(ctx)
