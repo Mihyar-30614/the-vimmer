@@ -896,18 +896,16 @@ function M.open_play(room, game_state, on_win, on_death)
 
     lines[#lines+1] = string.format(" Streak  %d", game_state.streak)
 
-    local combo_grp = hl.combo_group(game_state.combo)
-    if combo_grp then
-      local combo_text
-      if game_state.combo >= 20 then
-        combo_text = " 💀 UNSTOPPABLE"
-      elseif game_state.combo >= 10 then
-        combo_text = " 🔥 ON FIRE!"
-      else
-        combo_text = string.format(" ⚡ x%d COMBO!", game_state.combo_mult)
+    do
+      local used = game_state.keystrokes_used or 0
+      local budget = game_state.keystrokes_budget or 0
+      local over = used > budget
+      lines[#lines+1] = string.format(" Keys %d / %d", used, budget)
+      hls[#hls+1] = { over and "VimmerDamage" or "VimmerTitle", #lines - 1, 1, -1 }
+      if over then
+        lines[#lines+1] = " OVER BUDGET — HP draining"
+        hls[#hls+1] = { "VimmerTimerDanger", #lines - 1, 1, -1 }
       end
-      lines[#lines+1] = combo_text
-      hls[#hls+1] = { combo_grp, #lines - 1, 1, -1 }
     end
 
     local pu_str = ""
