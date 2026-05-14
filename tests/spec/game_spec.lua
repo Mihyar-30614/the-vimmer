@@ -39,58 +39,67 @@ describe("game state machine", function()
   end)
 end)
 
-describe("game HP tracking", function()
+describe("game keystroke budget", function()
   local g
 
   before_each(function()
     g = game.new()
-    g:start_room(make_room()); g:begin_play()
+    g:start_room(make_room())  -- optimal {"w","b"}, budget = ceil(2*1.5) = 3
+    g:begin_play()
   end)
 
-  it("starts at 100 HP", function()
-    assert.equals(100, g.hp)
+  it("budget is ceil(optimal * 1.5) by default", function()
+    assert.equals(3, g.keystrokes_budget)
   end)
 
-  it("optimal keystroke does not drain HP", function()
+  it("first key increments keystrokes_used, no HP drain", function()
     g:register_key("w")
+    assert.equals(1, g.keystrokes_used)
     assert.equals(100, g.hp)
   end)
 
-  it("non-optimal keystroke drains 5 HP", function()
-    g:register_key("x")
+  it("keys up to budget do not drain HP", function()
+    g:register_key("w"); g:register_key("x"); g:register_key("q")
+    assert.equals(3, g.keystrokes_used)
+    assert.equals(100, g.hp)
+    assert.equals(0, g.keystrokes_over_budget)
+  end)
+
+  it("first over-budget key drains 5 HP", function()
+    for _ = 1, 3 do g:register_key("z") end
+    g:register_key("z")  -- 4th = over budget
+    assert.equals(4, g.keystrokes_used)
     assert.equals(95, g.hp)
-    assert.equals(1, g.keys_wrong)
-    assert.equals(0, g.keys_correct)
-  end)
-
-  it("optimal keystroke increments keys_correct", function()
-    g:register_key("w")
-    assert.equals(1, g.keys_correct)
-    assert.equals(0, g.keys_wrong)
+    assert.equals(1, g.keystrokes_over_budget)
   end)
 
   it("HP never goes below 0", function()
-    for _ = 1, 30 do g:register_key("x") end
+    for _ = 1, 50 do g:register_key("z") end
     assert.equals(0, g.hp)
   end)
 
   it("is_dead returns true at 0 HP", function()
-    for _ = 1, 20 do g:register_key("x") end
+    for _ = 1, 50 do g:register_key("z") end
     assert.is_true(g:is_dead())
   end)
 
-  it("is_dead returns false above 0 HP", function()
-    g:register_key("x")
+  it("is_dead false above 0", function()
+    g:register_key("w")
     assert.is_false(g:is_dead())
   end)
 
   it("register_key is a no-op outside playing state", function()
-    -- Switch to teaching state and verify HP is not drained
-    g:start_room(make_room())   -- resets state to teaching
     g.state = "teaching"
-    g.hp = 100
     g:register_key("x")
+    assert.equals(0, g.keystrokes_used)
     assert.equals(100, g.hp)
+  end)
+
+  it("register_key is a no-op when current_room is nil", function()
+    local g2 = game.new()
+    g2.state = "playing"
+    g2:register_key("x")
+    assert.equals(0, g2.keystrokes_used)
   end)
 end)
 
@@ -119,96 +128,26 @@ describe("game streak", function()
 end)
 
 describe("game.last_xp", function()
-  it("is set after complete_room", function()
+  it("flawless clear (keystrokes_used <= optimal) applies 15% bonus", function()
     local g = game.new()
-    g:start_room(make_room()); g:begin_play()
+    g:start_room(make_room())  -- optimal length 2
+    g:begin_play()
+    g:register_key("w"); g:register_key("b")
     g:complete_room()
-    -- baseline XP before flawless multiplier = 100; flawless (+15%) applies when zero slips
-    assert.equals(math.floor(100 * 1.15), g.last_xp)
     assert.is_true(g.flawless_run)
+    -- base 50, hp_bonus floor(100/100*50)=50, subtotal 100, no streak,
+    -- efficiency_mult = clamp(2/2, 0.5, 3) = 1, total 100, flawless x1.15 = 115
+    assert.equals(115, g.last_xp)
   end)
 
-  it("HP drained before complete_room affects last_xp", function()
+  it("over-budget clear loses HP and is not flawless", function()
     local g = game.new()
-    g:start_room(make_room()); g:begin_play()
-    -- 5 non-optimal keystrokes * 5 HP each = 25 HP drained, 75 HP remaining
-    for _ = 1, 5 do g:register_key("x") end
-    assert.equals(75, g.hp)
+    g:start_room(make_room())  -- budget 3
+    g:begin_play()
+    for _ = 1, 5 do g:register_key("z") end  -- 2 over budget = -10 HP
     g:complete_room()
-    -- calculate_xp(50, 75, 0) = base(50) + hp_bonus(floor(75/100*50)=37) = 87
-    local progress = require("the-vimmer.progress")
-    local expected = progress.calculate_xp(50, 75, 0)
-    assert.equals(expected, g.last_xp)
-  end)
-end)
-
-describe("game combo multiplier", function()
-  local g
-
-  before_each(function()
-    g = game.new()
-    g:start_room(make_room({ optimal_keystrokes = { "w" } }))
-    g:begin_play()
-  end)
-
-  it("starts at combo 0, mult 1", function()
-    assert.equals(0, g.combo)
-    assert.equals(1, g.combo_mult)
-  end)
-
-  it("correct key increments combo", function()
-    g:register_key("w")
-    assert.equals(1, g.combo)
-  end)
-
-  it("wrong key resets combo to 0", function()
-    for _ = 1, 3 do g:register_key("w") end
-    g:register_key("x")
-    assert.equals(0, g.combo)
-  end)
-
-  it("combo_mult becomes 2 at combo 5", function()
-    for _ = 1, 5 do g:register_key("w") end
-    assert.equals(2, g.combo_mult)
-  end)
-
-  it("combo_mult becomes 3 at combo 10", function()
-    for _ = 1, 10 do g:register_key("w") end
-    assert.equals(3, g.combo_mult)
-  end)
-
-  it("combo_mult resets to 1 after wrong key at combo 7", function()
-    for _ = 1, 7 do g:register_key("w") end
-    g:register_key("x")
-    assert.equals(1, g.combo_mult)
-  end)
-end)
-
-describe("game HP regen", function()
-  local g
-
-  before_each(function()
-    g = game.new()
-    g:start_room(make_room({ optimal_keystrokes = {"w"} }))
-    g:begin_play()
-    g.hp = 88
-  end)
-
-  it("3 consecutive correct keys give +2 HP", function()
-    g:register_key("w"); g:register_key("w"); g:register_key("w")
     assert.equals(90, g.hp)
-  end)
-
-  it("regen does not exceed 100", function()
-    g.hp = 99
-    g:register_key("w"); g:register_key("w"); g:register_key("w")
-    assert.equals(100, g.hp)
-  end)
-
-  it("wrong key resets correct_streak, no regen on 3rd", function()
-    g:register_key("w"); g:register_key("w"); g:register_key("x")
-    g:register_key("w"); g:register_key("w")
-    assert.equals(88 - 5, g.hp)
+    assert.is_false(g.flawless_run)
   end)
 end)
 
@@ -376,22 +315,6 @@ describe("game boss phases", function()
   it("_phase_optimal returns phase 2 keys after advance", function()
     g:advance_boss_phase()
     assert.same({"w"}, g:_phase_optimal())
-  end)
-end)
-
-describe("acceptable parallel sequences", function()
-  it("accepts declared alternate path", function()
-    local g = game.new()
-    local room = make_room({
-      optimal_keystrokes = { "a", "b" },
-      optimal_keystrokes_alternates = { { "x", "y" } },
-    })
-    g:start_room(room)
-    g:begin_play()
-    g:register_key("x")
-    g:register_key("y")
-    assert.equals(2, g.keys_correct)
-    assert.equals(0, g.keys_wrong)
   end)
 end)
 

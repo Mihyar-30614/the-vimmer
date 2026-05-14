@@ -1,31 +1,5 @@
 local M = {}
 
-local rooms_mod = require("the-vimmer.rooms")
-
--- Advance one active sequence state by one key press.
--- Returns only states that matched `key`; an empty result means a wrong key.
--- pos=0 means the sequence was fully completed (pos resets to start).
-local function step_sequence_states(active, sequences, key)
-  local out = {}
-  local sig_seen = {}
-  for _, st in ipairs(active) do
-    local seq = sequences[st.seq_idx]
-    if seq and #seq > 0 then
-      local next_i = st.pos + 1
-      if seq[next_i] == key then
-        -- Reset to 0 on completion so the same sequence can be re-matched
-        local new_pos = (next_i == #seq) and 0 or next_i
-        local sig = st.seq_idx .. ":" .. new_pos
-        if not sig_seen[sig] then
-          sig_seen[sig] = true
-          out[#out + 1] = { seq_idx = st.seq_idx, pos = new_pos }
-        end
-      end
-    end
-  end
-  return out
-end
-
 function M.new()
   local g = {
     state = "idle",        -- idle | teaching | playing | results
@@ -85,25 +59,23 @@ function M.new()
     return self.current_room
   end
 
-  -- Rebuild _acceptable_sequences and reset all active-state cursors to pos=0.
-  function g:_reset_sequence_states()
-    local ctx = self:_phase_context()
-    self._acceptable_sequences = rooms_mod.acceptable_key_sequences(ctx)
-    self._seq_active = {}
-    for i = 1, #self._acceptable_sequences do
-      self._seq_active[#self._seq_active + 1] = { seq_idx = i, pos = 0 }
-    end
+  -- Return the optimal keystroke list for the current phase (used by teach screen + budget calc).
+  function g:_phase_optimal()
+    if not self.current_room then return {} end
+    return self:_phase_context().optimal_keystrokes or {}
+  end
+
+  -- Reset per-phase keystroke counters and recompute the budget.
+  function g:_reset_keystroke_budget()
+    self.keystrokes_used = 0
+    self.keystrokes_budget = self:_budget_for(#self:_phase_optimal())
   end
 
   -- Transition from teaching → playing; resets all per-room state.
   function g:begin_play()
     if not self.current_room then return end
     self.hp = 100
-    self.combo = 0
-    self.combo_mult = 1
-    self.correct_streak = 0
-    self.keys_correct = 0
-    self.keys_wrong = 0
+    self.keystrokes_over_budget = 0
     self.run_started_at = os.clock()
     self.timer_death = false
     if self.current_room.is_boss then
@@ -117,53 +89,19 @@ function M.new()
     end
     self.state = "playing"
     self:_apply_auto_powerups()
-    self:_reset_sequence_states()
-  end
-
-  -- Return the optimal keystroke list for the current phase (used by the teach screen).
-  function g:_phase_optimal()
-    if not self.current_room then return {} end
-    if self.current_room.is_boss then
-      local phase = self.current_room.phases[self.boss_phase]
-      return phase and phase.optimal_keystrokes or {}
-    end
-    return self.current_room.optimal_keystrokes or {}
+    self:_reset_keystroke_budget()
   end
 
   -- Called for every keypress while state == "playing".
-  -- Advances sequence matching; applies HP damage on wrong keys and regen every 3 correct.
-  function g:register_key(key)
+  -- Every key increments keystrokes_used; HP drains only for keys past the budget.
+  function g:register_key(_key)
     if self.state ~= "playing" then return end
     if not self.current_room then return end
-    local sequences = self._acceptable_sequences or {}
-    if #sequences == 0 then
-      -- No valid sequences means this key is always wrong
-      self.combo = 0
-      self.correct_streak = 0
-      self.keys_wrong = self.keys_wrong + 1
-      self.hp = math.max(0, self.hp - self:_wrong_hp_cost())
-      self.combo_mult = self.combo >= 10 and 3 or self.combo >= 5 and 2 or 1
-      return
+    self.keystrokes_used = self.keystrokes_used + 1
+    if self.keystrokes_used > self.keystrokes_budget then
+      self.keystrokes_over_budget = self.keystrokes_over_budget + 1
+      self.hp = math.max(0, self.hp - self:_over_budget_cost())
     end
-
-    local next_active = step_sequence_states(self._seq_active, sequences, key)
-    if #next_active > 0 then
-      self._seq_active = next_active
-      self.combo = self.combo + 1
-      self.correct_streak = self.correct_streak + 1
-      self.keys_correct = self.keys_correct + 1
-      -- iron mutator disables HP regen
-      if not self._mutators.iron and self.correct_streak % 3 == 0 then
-        self.hp = math.min(100, self.hp + 2)
-      end
-    else
-      self.combo = 0
-      self.correct_streak = 0
-      self.keys_wrong = self.keys_wrong + 1
-      self.hp = math.max(0, self.hp - self:_wrong_hp_cost())
-      self:_reset_sequence_states()
-    end
-    self.combo_mult = self.combo >= 10 and 3 or self.combo >= 5 and 2 or 1
   end
 
   function g:is_dead()
