@@ -1,16 +1,30 @@
--- Warrior room: /pattern + n + ciw (manual search-and-replace). Player searches, jumps, and changes each match.
+-- Warrior room: /pattern + cgn + .. Search-driven repeated edits.
 return {
   id = "warrior_n_repeat",
   tier = "warrior",
-  command = "/pattern + n + ciw",
-  title = "Search and Replace (manual)",
-  description = "Search for a pattern, jump to each match with n, change with ciw",
-  before_example = "|foo …  foo",
-  after_example = "|bar …  bar",
-  usage_tip = "/foo<CR> finds first match. n jumps to next. ciw changes the word. . repeats.",
-  start_text = "foo is good and foo does great foo things with foo",
-  target_text = "bar is good and bar does great bar things with bar",
-  base_xp = 80,
-  time_limit = 90,
-  optimal_keystrokes = { "/", "f", "o", "o", "\r", "c", "i", "w", "b", "a", "r", "\27", "n", ".", "n", ".", "n", "." },
+  command = "/pattern + cgn + .",
+  title = "Search and Repeat",
+  description = "Search for a pattern, change next match (cgn), repeat with .",
+  usage_tip = "/foo<CR> finds first match. cgn changes it. . repeats. n+. is the older form.",
+  before_example = "|foo\nfoo\nfoo",
+  after_example = "|bar\nbar\nbar",
+  filetype = "lua",
+  cursor_start = { row = 1, col = 1 },
+  time_limit = 70,
+  goal = "Rename all 4 instances of `temp` to `final`.",
+  start_text = [[
+local temp = 1
+local x = temp + 2
+local y = temp * 3
+local z = temp - 4]],
+  target_text = [[
+local final = 1
+local x = final + 2
+local y = final * 3
+local z = final - 4]],
+  base_xp = 100,
+  optimal_keystrokes = { "/", "t", "e", "m", "p", "\r", "c", "g", "n", "f", "i", "n", "a", "l", "\27", ".", ".", "." },
+  optimal_keystrokes_alternates = {
+    { "/", "t", "e", "m", "p", "\r", "c", "i", "w", "f", "i", "n", "a", "l", "\27", "n", ".", "n", ".", "n", "." },
+  },
 }
