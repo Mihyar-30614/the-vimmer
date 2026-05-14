@@ -195,6 +195,13 @@ function M.open_play(room, game_state, on_win, on_death)
 
     api.nvim_buf_set_lines(play_buf, 0, -1, false, vim.split(phase_data.start_text, "\n"))
 
+    local bo = phase_data.bo or room.bo
+    if type(bo) == "table" then
+      for k, v in pairs(bo) do
+        vim.bo[play_buf][k] = v
+      end
+    end
+
     local ns = api.nvim_create_namespace("the-vimmer-keys-" .. tostring(game_state.boss_phase))
     _play_ns = ns
 
