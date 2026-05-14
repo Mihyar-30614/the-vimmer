@@ -1,5 +1,13 @@
 local M = {}
 
+-- Prefer wall-clock time via vim.loop when available; fall back to os.clock for headless busted.
+local _now
+if type(vim) == "table" and type(vim.loop) == "table" and type(vim.loop.now) == "function" then
+  _now = function() return vim.loop.now() / 1000 end
+else
+  _now = os.clock
+end
+
 function M.new()
   local g = {
     state = "idle",        -- idle | teaching | playing | results
@@ -76,7 +84,7 @@ function M.new()
     if not self.current_room then return end
     self.hp = 100
     self.keystrokes_over_budget = 0
-    self.run_started_at = os.clock()
+    self.run_started_at = _now()
     self.timer_death = false
     if self.current_room.is_boss then
       self.boss_phase = 1
@@ -192,7 +200,7 @@ function M.new()
       mult,
       double
     )
-    self.run_seconds = self.run_started_at and math.max(0, os.clock() - self.run_started_at) or nil
+    self.run_seconds = self.run_started_at and math.max(0, _now() - self.run_started_at) or nil
     self.flawless_run = (used <= optimal_count)
     if self.flawless_run then
       self.last_xp = math.floor(self.last_xp * 1.15)
