@@ -138,3 +138,28 @@ describe("rooms.load_tier cache", function()
     assert.is_false(a == b, "expected fresh table after clear_cache")
   end)
 end)
+
+describe("rooms.load_tier picks up new content rooms", function()
+  before_each(function() rooms.clear_cache() end)
+
+  local expected_new_ids = {
+    "beginner_file_boundaries", "beginner_line_boundaries",
+    "beginner_toggle_case",     "beginner_delete_char",
+    "warrior_indent",           "warrior_viewport",
+    "warrior_scroll",           "warrior_goto_line",
+    "ninja_inc_dec",            "ninja_sort",
+    "ninja_norm_range",         "ninja_jump_list",
+  }
+
+  it("validates and loads every new room", function()
+    local found = {}
+    for _, tier in ipairs({ "beginner", "warrior", "ninja" }) do
+      for _, r in ipairs(rooms.load_tier(tier)) do
+        found[r.id] = true
+      end
+    end
+    for _, id in ipairs(expected_new_ids) do
+      assert.is_true(found[id], "missing room: " .. id)
+    end
+  end)
+end)
