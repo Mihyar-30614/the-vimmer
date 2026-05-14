@@ -34,6 +34,37 @@ local function validate_alternates(alts)
   return true
 end
 
+-- Validate the optional cursor_start field: nil or { row=int>=1, col=int>=1 }.
+local function validate_cursor_start(cs)
+  if cs == nil then return true end
+  if type(cs) ~= "table" then return false end
+  local r, c = cs.row, cs.col
+  if type(r) ~= "number" or type(c) ~= "number" then return false end
+  if r < 1 or c < 1 then return false end
+  if r ~= math.floor(r) or c ~= math.floor(c) then return false end
+  return true
+end
+
+-- Validate the optional filetype field: nil or non-empty string.
+local function validate_filetype(ft)
+  if ft == nil then return true end
+  return type(ft) == "string" and #ft > 0
+end
+
+-- Validate the optional goal field: nil or string.
+local function validate_goal(g)
+  if g == nil then return true end
+  return type(g) == "string"
+end
+
+-- Validate the optional schema additions shared by rooms and boss phases.
+local function validate_optional_additions(ctx)
+  if not validate_filetype(ctx.filetype) then return false end
+  if not validate_cursor_start(ctx.cursor_start) then return false end
+  if not validate_goal(ctx.goal) then return false end
+  return true
+end
+
 -- Validate required room fields; boss rooms have a different required set (phases instead of start/target).
 function M.validate(room)
   if room.is_boss then
@@ -41,11 +72,13 @@ function M.validate(room)
       if room[field] == nil then return false end
     end
     if type(room.phases) ~= "table" or #room.phases < 1 then return false end
+    if not validate_optional_additions(room) then return false end
     for _, phase in ipairs(room.phases) do
       if not phase.start_text or not phase.target_text or not phase.optimal_keystrokes then
         return false
       end
       if not validate_alternates(phase.optimal_keystrokes_alternates) then return false end
+      if not validate_optional_additions(phase) then return false end
     end
     return true
   end
@@ -53,6 +86,7 @@ function M.validate(room)
     if room[field] == nil then return false end
   end
   if not validate_alternates(room.optimal_keystrokes_alternates) then return false end
+  if not validate_optional_additions(room) then return false end
   return true
 end
 

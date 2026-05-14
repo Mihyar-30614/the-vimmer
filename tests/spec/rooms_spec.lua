@@ -163,3 +163,135 @@ describe("rooms.load_tier picks up new content rooms", function()
     end
   end)
 end)
+
+describe("rooms.validate optional filetype", function()
+  local base = {
+    id = "t", tier = "beginner", command = "w",
+    title = "T", description = "D",
+    before_example = "a", after_example = "b",
+    usage_tip = "tip", start_text = "x", target_text = "y",
+    base_xp = 10, optimal_keystrokes = { "w" },
+  }
+  local function clone() local r = {}; for k, v in pairs(base) do r[k] = v end; return r end
+
+  it("accepts room without filetype", function()
+    assert.is_true(rooms.validate(clone()))
+  end)
+
+  it("accepts room with string filetype", function()
+    local r = clone(); r.filetype = "typescript"
+    assert.is_true(rooms.validate(r))
+  end)
+
+  it("rejects room with non-string filetype", function()
+    local r = clone(); r.filetype = 123
+    assert.is_false(rooms.validate(r))
+  end)
+end)
+
+describe("rooms.validate optional cursor_start", function()
+  local base = {
+    id = "t", tier = "beginner", command = "w",
+    title = "T", description = "D",
+    before_example = "a", after_example = "b",
+    usage_tip = "tip", start_text = "x", target_text = "y",
+    base_xp = 10, optimal_keystrokes = { "w" },
+  }
+  local function clone() local r = {}; for k, v in pairs(base) do r[k] = v end; return r end
+
+  it("accepts room without cursor_start", function()
+    assert.is_true(rooms.validate(clone()))
+  end)
+
+  it("accepts room with valid cursor_start", function()
+    local r = clone(); r.cursor_start = { row = 3, col = 5 }
+    assert.is_true(rooms.validate(r))
+  end)
+
+  it("rejects cursor_start with non-table value", function()
+    local r = clone(); r.cursor_start = "1,1"
+    assert.is_false(rooms.validate(r))
+  end)
+
+  it("rejects cursor_start with missing row", function()
+    local r = clone(); r.cursor_start = { col = 1 }
+    assert.is_false(rooms.validate(r))
+  end)
+
+  it("rejects cursor_start with non-integer row", function()
+    local r = clone(); r.cursor_start = { row = 1.5, col = 1 }
+    assert.is_false(rooms.validate(r))
+  end)
+
+  it("rejects cursor_start with row < 1", function()
+    local r = clone(); r.cursor_start = { row = 0, col = 1 }
+    assert.is_false(rooms.validate(r))
+  end)
+
+  it("rejects cursor_start with col < 1", function()
+    local r = clone(); r.cursor_start = { row = 1, col = 0 }
+    assert.is_false(rooms.validate(r))
+  end)
+end)
+
+describe("rooms.validate optional goal", function()
+  local base = {
+    id = "t", tier = "beginner", command = "w",
+    title = "T", description = "D",
+    before_example = "a", after_example = "b",
+    usage_tip = "tip", start_text = "x", target_text = "y",
+    base_xp = 10, optimal_keystrokes = { "w" },
+  }
+  local function clone() local r = {}; for k, v in pairs(base) do r[k] = v end; return r end
+
+  it("accepts room without goal", function()
+    assert.is_true(rooms.validate(clone()))
+  end)
+
+  it("accepts room with string goal", function()
+    local r = clone(); r.goal = "Rename param"
+    assert.is_true(rooms.validate(r))
+  end)
+
+  it("rejects room with non-string goal", function()
+    local r = clone(); r.goal = { "bad" }
+    assert.is_false(rooms.validate(r))
+  end)
+end)
+
+describe("rooms.validate boss phase optional fields", function()
+  local base_boss = {
+    id = "tb", tier = "warrior", is_boss = true,
+    command = "X", title = "B", description = "D",
+    usage_tip = "tip", base_xp = 300, time_limit = 100,
+    phases = {
+      { start_text = "a", target_text = "b", optimal_keystrokes = { "x" }, tip = "p1" },
+    },
+  }
+  local function clone()
+    local r = {}; for k, v in pairs(base_boss) do r[k] = v end
+    r.phases = { {} }
+    for k, v in pairs(base_boss.phases[1]) do r.phases[1][k] = v end
+    return r
+  end
+
+  it("accepts boss with valid per-phase filetype/cursor_start/goal", function()
+    local r = clone()
+    r.phases[1].filetype = "lua"
+    r.phases[1].cursor_start = { row = 1, col = 1 }
+    r.phases[1].goal = "do the thing"
+    assert.is_true(rooms.validate(r))
+  end)
+
+  it("rejects boss with malformed per-phase cursor_start", function()
+    local r = clone()
+    r.phases[1].cursor_start = { row = 0, col = 1 }
+    assert.is_false(rooms.validate(r))
+  end)
+
+  it("rejects boss with non-string per-phase filetype", function()
+    local r = clone()
+    r.phases[1].filetype = 7
+    assert.is_false(rooms.validate(r))
+  end)
+end)
