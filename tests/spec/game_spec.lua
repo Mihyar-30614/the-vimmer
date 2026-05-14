@@ -288,24 +288,30 @@ describe("game boss phases", function()
     assert.equals(3, g.boss_total_phases)
   end)
 
+  it("begin_play computes budget from phase 1 optimal length", function()
+    -- phase 1 optimal = {"w"} → budget = ceil(1 * 1.5) = 2
+    assert.equals(2, g.keystrokes_budget)
+  end)
+
   it("advance_boss_phase increments boss_phase", function()
     g:advance_boss_phase()
     assert.equals(2, g.boss_phase)
   end)
 
-  it("advance_boss_phase resets combo and correct_streak", function()
-    g.combo = 8; g.combo_mult = 2; g.correct_streak = 5
+  it("advance_boss_phase resets keystrokes_used and recomputes budget", function()
+    g:register_key("w"); g:register_key("x"); g:register_key("z")
+    assert.equals(3, g.keystrokes_used)
     g:advance_boss_phase()
-    assert.equals(0, g.combo)
-    assert.equals(1, g.combo_mult)
-    assert.equals(0, g.correct_streak)
+    assert.equals(0, g.keystrokes_used)
+    assert.equals(2, g.keystrokes_budget)
   end)
 
-  it("advance_boss_phase does NOT reset HP or timer", function()
-    g.hp = 70; g.timer_remaining = 45
+  it("advance_boss_phase does NOT reset HP, timer, or over-budget counter", function()
+    g.hp = 70; g.timer_remaining = 45; g.keystrokes_over_budget = 2
     g:advance_boss_phase()
     assert.equals(70, g.hp)
     assert.equals(45, g.timer_remaining)
+    assert.equals(2, g.keystrokes_over_budget)
   end)
 
   it("_phase_optimal returns phase 1 optimal keys", function()

@@ -152,13 +152,11 @@ function M.new()
     return false
   end
 
-  -- Move to the next boss phase; resets combo/streak and re-seeds sequence states.
+  -- Move to the next boss phase; resets per-phase keystroke counters and recomputes budget.
+  -- HP, timer, and the over-budget counter carry over.
   function g:advance_boss_phase()
     self.boss_phase = self.boss_phase + 1
-    self.combo = 0
-    self.combo_mult = 1
-    self.correct_streak = 0
-    self:_reset_sequence_states()
+    self:_reset_keystroke_budget()
   end
 
   -- Finalise the room: calculate XP (with optional double_xp power-up),
