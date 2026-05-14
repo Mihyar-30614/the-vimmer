@@ -44,8 +44,8 @@ function M.ensure_room_stats(prog, room_id)
       clears = 0,
       deaths = 0,
       flawless_clears = 0,
-      keys_correct = 0,
-      keys_wrong = 0,
+      keystrokes_used = 0,
+      keystrokes_over_budget = 0,
     }
   end
   return prog.room_stats[room_id]
@@ -57,12 +57,12 @@ function M.record_attempt(prog, room_id)
   s.attempts = s.attempts + 1
 end
 
--- Record a successful clear: increments clears, accumulates key stats, marks flawless runs.
+-- Record a successful clear: increments clears, accumulates keystroke totals, marks flawless runs.
 function M.record_clear_run(prog, room_id, game_state)
   local s = M.ensure_room_stats(prog, room_id)
   s.clears = s.clears + 1
-  s.keys_correct = s.keys_correct + (game_state.keys_correct or 0)
-  s.keys_wrong = s.keys_wrong + (game_state.keys_wrong or 0)
+  s.keystrokes_used = s.keystrokes_used + (game_state.keystrokes_used or 0)
+  s.keystrokes_over_budget = s.keystrokes_over_budget + (game_state.keystrokes_over_budget or 0)
   if game_state.flawless_run then
     s.flawless_clears = s.flawless_clears + 1
   end
@@ -167,7 +167,22 @@ function M.load(path)
   local data = json_decode(raw)
   if not data then return default_state() end
   local def = default_state()
-  return vim.tbl_deep_extend("force", def, data)
+  local merged = vim.tbl_deep_extend("force", def, data)
+  if type(merged.room_stats) == "table" then
+    for _, st in pairs(merged.room_stats) do
+      if st.keys_correct or st.keys_wrong then
+        local kc = st.keys_correct or 0
+        local kw = st.keys_wrong or 0
+        st.keystrokes_used = (st.keystrokes_used or 0) + kc + kw
+        st.keystrokes_over_budget = (st.keystrokes_over_budget or 0) + kw
+        st.keys_correct = nil
+        st.keys_wrong = nil
+      end
+      st.keystrokes_used = st.keystrokes_used or 0
+      st.keystrokes_over_budget = st.keystrokes_over_budget or 0
+    end
+  end
+  return merged
 end
 
 function M.reset(path)

@@ -163,3 +163,65 @@ describe("progress.refresh_mutator_unlocks", function()
     assert.is_true(prog.unlocked_mutators.iron)
   end)
 end)
+
+describe("progress.ensure_room_stats new schema", function()
+  it("initializes keystrokes_used and keystrokes_over_budget", function()
+    local prog = {}
+    local s = progress.ensure_room_stats(prog, "test_room")
+    assert.equals(0, s.keystrokes_used)
+    assert.equals(0, s.keystrokes_over_budget)
+    assert.equals(0, s.attempts)
+    assert.equals(0, s.clears)
+    assert.equals(0, s.deaths)
+    assert.equals(0, s.flawless_clears)
+  end)
+end)
+
+describe("progress.record_clear_run new schema", function()
+  it("accumulates keystrokes_used and keystrokes_over_budget", function()
+    local prog = {}
+    progress.record_clear_run(prog, "test_room", {
+      keystrokes_used = 12,
+      keystrokes_over_budget = 3,
+      flawless_run = false,
+    })
+    local s = prog.room_stats.test_room
+    assert.equals(12, s.keystrokes_used)
+    assert.equals(3, s.keystrokes_over_budget)
+    assert.equals(1, s.clears)
+    assert.equals(0, s.flawless_clears)
+  end)
+
+  it("flawless_run still bumps flawless_clears", function()
+    local prog = {}
+    progress.record_clear_run(prog, "r", {
+      keystrokes_used = 4, keystrokes_over_budget = 0, flawless_run = true,
+    })
+    assert.equals(1, prog.room_stats.r.flawless_clears)
+  end)
+end)
+
+describe("progress.load migrates legacy room_stats", function()
+  it("converts keys_correct + keys_wrong to keystrokes_used", function()
+    local tmp = os.tmpname() .. ".json"
+    local legacy = {
+      total_xp = 50,
+      cleared = {},
+      streak = 0,
+      room_stats = {
+        old_room = {
+          attempts = 5, clears = 2, deaths = 1, flawless_clears = 0,
+          keys_correct = 40, keys_wrong = 10,
+        },
+      },
+    }
+    progress.save(legacy, tmp)
+    local loaded = progress.load(tmp)
+    local s = loaded.room_stats.old_room
+    assert.equals(50, s.keystrokes_used)
+    assert.equals(10, s.keystrokes_over_budget)
+    assert.is_nil(s.keys_correct)
+    assert.is_nil(s.keys_wrong)
+    os.remove(tmp)
+  end)
+end)
