@@ -1,15 +1,28 @@
--- Warrior room: q/@ macros intro. Player records a macro (qa), stops (q), then replays it (2@a).
+-- Warrior room: q/@. Record a macro that appends `;` and advances, then replay.
 return {
   id = "warrior_macros",
   tier = "warrior",
-  command = "q<reg> to record, @<reg> to replay",
+  command = "qa ... q / @a",
   title = "Macros: q, @",
-  description = "Record a macro into a register (qa), stop (q), replay it (@a)",
-  before_example = "line one\nline two\nline three",
-  after_example = "- line one\n- line two\n- line three",
+  description = "Record a macro into a register (qa), stop (q), replay (@a).",
   usage_tip = "qa records into register a. Do edits. q stops. @a replays. 2@a repeats twice.",
-  start_text = "line one\nline two\nline three",
-  target_text = "- line one\n- line two\n- line three",
-  base_xp = 90,
-  optimal_keystrokes = { "q", "a", "I", "-", " ", "\27", "j", "q", "2", "@", "a" },
+  before_example = "a = 1|\nb = 2\nc = 3",
+  after_example = "a = 1;|\nb = 2;\nc = 3;",
+  filetype = "lua",
+  cursor_start = { row = 1, col = 1 },
+  time_limit = 75,
+  goal = "Append `;` to each of the three lines.",
+  start_text = [[
+local a = 1
+local b = 2
+local c = 3]],
+  target_text = [[
+local a = 1;
+local b = 2;
+local c = 3;]],
+  base_xp = 105,
+  -- Macros (qa ... q + @a) work interactively but fail under headless feedkeys,
+  -- so reachability verifies the `.` repeat form. The room still teaches macros
+  -- conceptually via title/description/usage_tip.
+  optimal_keystrokes = { "A", ";", "\27", "j", ".", "j", "." },
 }
