@@ -1,3 +1,4 @@
+-- Ninja room: macro + text objects (advanced combo). Player records a macro with ciw and applies it to next line.
 return {
   id = "ninja_advanced_macros",
   tier = "ninja",

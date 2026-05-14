@@ -1,3 +1,4 @@
+-- Beginner room: dd/yy/p (line cut-copy-paste). Player reorders two lines using dd then p.
 return {
   id = "beginner_dd_yp",
   tier = "beginner",
@@ -10,6 +11,6 @@ return {
   start_text = "banana\napple\ncherry",
   target_text = "apple\nbanana\ncherry",
   base_xp = 45,
-  time_limit = 30,
+  time_limit = 45,
   optimal_keystrokes = { "d", "d", "p" },
 }

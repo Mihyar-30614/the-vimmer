@@ -1,20 +1,26 @@
+-- All UI screens for the-vimmer: map, teach, play (with live HUD), results, death, progress.
+-- Every screen opens as a floating window (or tab for play). Screens do not share state
+-- between calls — each open_* call creates fresh buffers and cleans up on close.
 local M = {}
 local api = vim.api
 local progress = require("the-vimmer.progress")
 
---- Default floating window widths (characters including ║ borders).
+-- Default floating window widths (characters including ║ borders).
+-- pick_float_width clamps these down on narrow terminals.
 local FLOAT_MAP_W = 78
 local FLOAT_TEACH_W = 86
 local FLOAT_RESULTS_W = 78
 local FLOAT_DEATH_W = 52
 local FLOAT_PROGRESS_W = 74
 
+-- Clamp a desired float width to fit on the current terminal with a 4-col margin.
 local function pick_float_width(desired)
   local margin = 4
   local max_w = math.max(44, vim.o.columns - margin)
   return math.min(desired, max_w)
 end
 
+-- Convert a raw key byte to a human-readable label for display in the HUD.
 local function format_key(k)
   if k == "\27"           then return "<Esc>"
   elseif k == "\r"        then return "<CR>"
@@ -31,6 +37,7 @@ local MUTATOR_TEACH = {
   rush = "Rush",
 }
 
+-- Build a one-line mutator summary for teach/results screens; returns nil when no mutators active.
 local function mutator_summary_line(names)
   if not names or #names == 0 then return nil end
   local parts = {}
@@ -40,6 +47,8 @@ local function mutator_summary_line(names)
   return "  Mutators: " .. table.concat(parts, ", ")
 end
 
+-- Render the optimal keystroke sequence(s) as display lines, wrapping at inner_width.
+-- Boss rooms get one line per phase prefixed "P1:", "P2:", etc.
 local function build_optimal_lines(room, inner_width)
   local result = {}
   local function wrap_seq(prefix, ks)
@@ -74,6 +83,8 @@ local function build_optimal_lines(room, inner_width)
   return result
 end
 
+-- Pad content to fill a bordered row: ║<content + spaces>║.
+-- Uses a rough byte-length approximation for multi-byte characters (replaces each with '_' for measuring).
 local function pad_row(content, width)
   local visible = content:gsub("[\xc2-\xdf][\x80-\xbf]", "_")
     :gsub("[\xe0-\xef][\x80-\xbf][\x80-\xbf]", "_")
@@ -163,6 +174,7 @@ local function add_wrapped_prefixed(add, row, prefix, text, box_width, hl_group)
   end
 end
 
+-- Return { top, sep, bot, row } box-drawing helpers for a given width.
 local function make_border(width)
   return {
     top = "╔" .. string.rep("═", width - 2) .. "╗",
@@ -172,6 +184,7 @@ local function make_border(width)
   }
 end
 
+-- Build a mini progress bar (█░) for tier completion shown on the map.
 local function tier_room_bar(cleared, total, bar_len)
   bar_len = bar_len or 8
   if total <= 0 then return string.rep("░", bar_len) end
@@ -180,10 +193,12 @@ local function tier_room_bar(cleared, total, bar_len)
   return string.rep("█", filled) .. string.rep("░", bar_len - filled)
 end
 
+-- Format a wall-clock run duration as "X.Xs" for the results screen.
 local function fmt_run_seconds(s)
   return string.format("%.1fs", s)
 end
 
+-- Return a flavour string for notable streak milestones, or nil for unremarkable streaks.
 local function streak_milestone_phrase(streak_after_win)
   if streak_after_win >= 20 then return "Dungeon legend — unreal streak." end
   if streak_after_win >= 10 then return "Double digits — you're flying." end
@@ -192,6 +207,7 @@ local function streak_milestone_phrase(streak_after_win)
   return nil
 end
 
+-- Build a ▓░ XP bar capped at 1000 XP for the map header.
 local function xp_bar(xp, bar_width)
   local max_xp = 1000
   local filled = math.min(math.floor((xp / max_xp) * bar_width), bar_width)
@@ -200,12 +216,14 @@ end
 
 local _flash_ns = api.nvim_create_namespace("the-vimmer-flash")
 
+-- Apply a list of { group, line, col_start, col_end } highlight specs to a buffer.
 local function apply_hl(buf, highlights)
   for _, h in ipairs(highlights) do
     api.nvim_buf_add_highlight(buf, 0, h[1], h[2], h[3], h[4])
   end
 end
 
+-- Flash all lines of `buf` with a highlight group for `duration` ms, then invoke callback.
 local function flash(buf, group, duration, callback)
   local n = api.nvim_buf_line_count(buf)
   for i = 0, n - 1 do
@@ -219,6 +237,8 @@ local function flash(buf, group, duration, callback)
   end, duration or 100)
 end
 
+-- Run a sequence of flash steps: { { group, duration }, ... }, then call callback.
+-- Used for win/death animations (e.g. green-clear-red).
 local function multi_flash(buf, steps, callback)
   local function run(i)
     if i > #steps then
@@ -242,6 +262,7 @@ local function multi_flash(buf, steps, callback)
   run(1)
 end
 
+-- Open a centred, borderless, read-only floating window containing `lines`.
 local function open_float(lines, width)
   local height = #lines
   local buf = api.nvim_create_buf(false, true)
@@ -267,6 +288,8 @@ local function open_float(lines, width)
   return buf, win
 end
 
+-- Show a floating list of the optimal key sequence, highlighting each key in turn.
+-- Pulsing animation steps through keys at 170 ms per key. <q> closes.
 function M.open_key_replay(room, replay_opts)
   replay_opts = replay_opts or {}
   local phase_idx = replay_opts.phase_index
@@ -328,6 +351,8 @@ function M.open_key_replay(room, replay_opts)
   end
 end
 
+-- Open the room selection map. Shows XP, tier progress bars, and all selectable rooms.
+-- j/k navigate, <Enter> selects, <q> closes. Boss rooms show lock/ready/cleared state.
 function M.open_map(progress_data, rooms_by_tier, on_select)
   progress_data = progress_data or {}
   progress_data.total_xp = progress_data.total_xp or 0
@@ -499,6 +524,7 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
   end)
 end
 
+-- Open the read-only progress screen: total XP, streak, mutators, per-tier room counts.
 function M.open_progress(progress_data, rooms_by_tier)
   progress_data = progress_data or {}
   progress_data.total_xp = progress_data.total_xp or 0
@@ -635,6 +661,9 @@ function M.open_progress(progress_data, rooms_by_tier)
   vim.keymap.set("n", "<Esc>", close_progress, { buffer = buf, nowait = true, silent = true })
 end
 
+-- Open the teach screen: command, description, before→after diff, usage tip, keystroke list.
+-- <Enter> closes it and calls on_begin() to transition to play. <r> opens key replay.
+-- Accepts either open_teach(room, on_begin) or open_teach(room, flow_opts, on_begin).
 function M.open_teach(room, flow_opts_or_cb, maybe_cb)
   local flow_opts, on_begin
   if type(flow_opts_or_cb) == "function" then
@@ -751,10 +780,12 @@ function M.open_teach(room, flow_opts_or_cb, maybe_cb)
   end, { buffer = buf, nowait = true, silent = true })
 end
 
-local _play_ns = nil
-local _play_tab = nil
-local _timer_handle = nil
+-- Module-level play state. Only one play session can be active at a time.
+local _play_ns = nil  -- current vim.on_key namespace (nil when no session active)
+local _play_tab = nil -- tabpage handle for the play layout
+local _timer_handle = nil  -- active uv timer; nil when no timed room is running
 
+-- Flash a "PHASE N" banner centred over `win` for 800 ms, then call callback.
 function M._show_phase_banner(win, phase_num, callback)
   local label = string.format("  ── PHASE %d ──  ", phase_num)
   local buf = api.nvim_create_buf(false, true)
@@ -778,6 +809,9 @@ function M._show_phase_banner(win, phase_num, callback)
   end, 800)
 end
 
+-- Open the 3-pane play layout: TARGET (top-left), EDIT HERE (bottom-left), STATUS HUD (right).
+-- Installs a vim.on_key handler that feeds every keypress into game_state:register_key().
+-- Calls on_win when buffer content matches target; calls on_death when HP/timer reaches 0.
 function M.open_play(room, game_state, on_win, on_death)
   M._close_play()
   local hl = require("the-vimmer.highlights")
@@ -828,6 +862,7 @@ function M.open_play(room, game_state, on_win, on_death)
 
   local pu_icons_map = { hp_restore = "♥", freeze_timer = "❄", double_xp = "★" }
 
+  -- Redraw the status HUD buffer with current HP bar, timer, streak, combo, and power-ups.
   local function update_hud()
     if not api.nvim_buf_is_valid(hud_buf) then return end
     local hp_blocks = math.ceil(game_state.hp / 10)
@@ -905,6 +940,7 @@ function M.open_play(room, game_state, on_win, on_death)
     api.nvim_buf_set_option(hud_buf, "modifiable", false)
   end
 
+  -- Show a temporary damage feedback line in the HUD; auto-clears after ~950 ms.
   local function hud_pulse_feedback(msg)
     hud_feedback_line = msg
     update_hud()
@@ -917,6 +953,8 @@ function M.open_play(room, game_state, on_win, on_death)
     end, 950)
   end
 
+  -- Start the countdown timer: fires every 1000 ms, calls game_state:tick_timer(),
+  -- redraws the HUD, and triggers the death sequence when time expires.
   local function start_timer()
     if not game_state.timer_remaining then return end
     _timer_handle = vim.loop.new_timer()
@@ -937,6 +975,8 @@ function M.open_play(room, game_state, on_win, on_death)
     end))
   end
 
+  -- Populate the TARGET and EDIT buffers for a phase, then wire up the key handler.
+  -- For boss rooms this is called once per phase; for normal rooms it's called once total.
   local function start_phase(phase_data)
     local target_lines = vim.split(phase_data.target_text, "\n")
 
@@ -1035,6 +1075,7 @@ function M.open_play(room, game_state, on_win, on_death)
   start_timer()
 end
 
+-- Tear down the play session: stop the timer, remove the key handler, close the tab.
 function M._close_play()
   if _play_ns then
     vim.on_key(nil, _play_ns)
@@ -1054,6 +1095,10 @@ function M._close_play()
   end
 end
 
+-- Open the results screen with an animated line-by-line reveal (80 ms per line).
+-- Shows XP, HP, streak, key discipline, personal-best time, optimal sequence.
+-- If fast_clear is true, shows a power-up picker before handing control to on_continue.
+-- on_continue(go_map): true → return to map, false → auto-advance to next room.
 function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_continue, opts)
   opts = opts or {}
   local is_boss = opts.is_boss
@@ -1237,6 +1282,8 @@ function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_conti
   vim.defer_fn(reveal_next, 80)
 end
 
+-- Open the death screen: shows cause (HP or timer), mistake count, and optimal sequence.
+-- <Enter> retries the room; <r> opens key replay; <q> returns to map.
 function M.open_death(room, on_retry, on_map, death_opts)
   death_opts = death_opts or {}
   local width = pick_float_width(FLOAT_DEATH_W)

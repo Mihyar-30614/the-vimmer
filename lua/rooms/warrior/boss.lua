@@ -1,3 +1,5 @@
+-- Warrior boss: 3-phase gauntlet. Phase 1 = f-motion delete, Phase 2 = visual block insert, Phase 3 = macro replay.
+-- Unlocks ninja tier on clear.
 return {
   id = "warrior_boss",
   tier = "warrior",
@@ -7,7 +9,7 @@ return {
   description = "Three-phase trial. Search, visual block, and macros.",
   usage_tip = "Chain f-motion, visual block, then record and replay a macro.",
   base_xp = 450,
-  time_limit = 150,
+  time_limit = 225,
   phases = {
     {
       tip = "Phase 1: Use f-motion to reach each colon and delete it",

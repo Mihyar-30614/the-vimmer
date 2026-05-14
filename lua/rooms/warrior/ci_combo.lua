@@ -1,3 +1,4 @@
+-- Warrior room: ci"/ci(/ci[ (change-inside combos). Player changes content inside multiple delimiter pairs.
 return {
   id = "warrior_ci_combo",
   tier = "warrior",
@@ -10,6 +11,6 @@ return {
   start_text = 'greet("World")\nmath.abs(-42)\ndata["key"]',
   target_text = 'greet("Vim")\nmath.abs(-1)\ndata["val"]',
   base_xp = 90,
-  time_limit = 50,
+  time_limit = 75,
   optimal_keystrokes = { "c", "i", '"', "V", "i", "m", "\27", "j", "c", "i", "(", "-", "1", "\27", "j", "c", "i", "[", "v", "a", "l", "\27" },
 }

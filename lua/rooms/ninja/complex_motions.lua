@@ -1,3 +1,4 @@
+-- Ninja room: gg/G/{/} (file-level motions). Navigation-only — player jumps between paragraphs with }.
 return {
   id = "ninja_complex_motions",
   tier = "ninja",

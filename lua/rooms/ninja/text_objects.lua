@@ -1,3 +1,4 @@
+-- Ninja room: di(/da[/ci{ (text objects). Player deletes "wrong_arg" inside parentheses with di(.
 return {
   id = "ninja_text_objects",
   tier = "ninja",

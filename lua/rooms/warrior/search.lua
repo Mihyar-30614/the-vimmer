@@ -1,3 +1,4 @@
+-- Warrior room: / and n/N (forward search). Navigation-only — player searches for "fox" with /fox<CR>.
 return {
   id = "warrior_search",
   tier = "warrior",

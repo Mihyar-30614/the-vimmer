@@ -1,5 +1,8 @@
+-- Wires the full room-play flow and registers all :Vimmer* user commands.
+-- start_flow is the single entry point for every room-play path (map, daily, CLI, telescope).
 local M = {}
 
+-- Lazy-load all runtime dependencies together to avoid circular require issues at startup.
 local function deps()
   return {
     ui = require("the-vimmer.ui"),
@@ -10,6 +13,7 @@ local function deps()
   }
 end
 
+-- Build a { tier → rooms[] } table used by the map, progress, and daily screens.
 local function build_rooms_by_tier(d)
   local result = {}
   for _, tier in ipairs(d.rooms.all_tiers()) do
@@ -18,6 +22,7 @@ local function build_rooms_by_tier(d)
   return result
 end
 
+-- Detect whether any tier just became unlocked this run; returns a display name or nil.
 local function check_newly_unlocked(d, prog, rooms_by_tier)
   for _, tier in ipairs(d.rooms.all_tiers()) do
     if not (prog.unlocked_tiers or {})[tier] then
@@ -32,7 +37,10 @@ local function check_newly_unlocked(d, prog, rooms_by_tier)
   return nil
 end
 
---- Entry point for playing a room (used by map, Telescope, daily, CLI).
+-- Entry point for playing a room (used by map, Telescope, daily, CLI).
+-- flow_opts: { mutators = string[], daily = bool }
+-- on_win: saves XP/PB, checks tier unlocks, grants power-ups, shows results screen.
+-- on_death: resets streak, saves death stat, shows retry/map screen.
 function M.start_flow(room, flow_opts)
   flow_opts = flow_opts or {}
   local d = deps()

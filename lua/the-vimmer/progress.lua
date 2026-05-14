@@ -1,3 +1,6 @@
+-- Persistence layer for the player's save data (JSON file in stdpath("data")).
+-- All functions operate on a plain Lua table ("prog"); callers must call M.save() to persist.
+-- The save file lives at: <stdpath("data")>/the-vimmer/progress.json
 local M = {}
 
 local function json_encode(t)
@@ -32,6 +35,7 @@ M.MUTATOR_UNLOCK_XP = {
   rush = 480,
 }
 
+-- Lazily initialise per-room stat counters; returns the stats sub-table.
 function M.ensure_room_stats(prog, room_id)
   prog.room_stats = prog.room_stats or {}
   if not prog.room_stats[room_id] then
@@ -47,11 +51,13 @@ function M.ensure_room_stats(prog, room_id)
   return prog.room_stats[room_id]
 end
 
+-- Increment attempt counter when the player starts playing (after the teach screen).
 function M.record_attempt(prog, room_id)
   local s = M.ensure_room_stats(prog, room_id)
   s.attempts = s.attempts + 1
 end
 
+-- Record a successful clear: increments clears, accumulates key stats, marks flawless runs.
 function M.record_clear_run(prog, room_id, game_state)
   local s = M.ensure_room_stats(prog, room_id)
   s.clears = s.clears + 1
@@ -62,11 +68,13 @@ function M.record_clear_run(prog, room_id, game_state)
   end
 end
 
+-- Increment death counter (HP → 0 or timer expired).
 function M.record_death(prog, room_id)
   local s = M.ensure_room_stats(prog, room_id)
   s.deaths = s.deaths + 1
 end
 
+-- Re-evaluate mutator unlocks from lifetime XP; call after every XP gain.
 function M.refresh_mutator_unlocks(prog)
   prog.unlocked_mutators = prog.unlocked_mutators or {}
   local xp = prog.total_xp or 0
@@ -75,7 +83,8 @@ function M.refresh_mutator_unlocks(prog)
   end
 end
 
---- Regular room with lowest on-pattern ratio (needs attempts + key stats).
+-- Find the regular room where (keys_correct / total_keys) is lowest across all unlocked tiers.
+-- Used by the map and progress screens to suggest a practice target.
 function M.weakest_regular_room_id(prog, rooms_by_tier)
   local tiers = require("the-vimmer.rooms").all_tiers()
   local worst_id, worst_ratio = nil, 1.0001
@@ -104,6 +113,7 @@ function M.weakest_regular_room_id(prog, rooms_by_tier)
   return worst_id
 end
 
+-- XP formula: base + HP bonus (up to +100%), +50% for streak >= 3, × combo_mult, × 2 if double.
 function M.calculate_xp(base_xp, remaining_hp, streak, combo_mult, double_xp)
   combo_mult = combo_mult or 1
   local hp_bonus = math.floor(remaining_hp / 100 * base_xp)
@@ -114,12 +124,14 @@ function M.calculate_xp(base_xp, remaining_hp, streak, combo_mult, double_xp)
   return math.floor(total)
 end
 
+-- Beginner is always unlocked; warrior/ninja unlock after clearing the previous tier's boss.
 function M.is_tier_unlocked(tier, cleared, total_in_tier)
   if tier == "beginner" then return true end
   local boss_id = (tier == "warrior") and "beginner_boss" or "warrior_boss"
   return cleared[boss_id] == true
 end
 
+-- Boss unlocks when at least 80% of regular rooms in the tier are cleared.
 function M.is_boss_unlocked(tier, cleared, total_regular)
   local prefix = tier .. "_"
   local count = 0

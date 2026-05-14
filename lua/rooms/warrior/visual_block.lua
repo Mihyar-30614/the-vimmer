@@ -1,3 +1,4 @@
+-- Warrior room: Ctrl-v + I (visual block insert). Player prefixes all 5 lines simultaneously.
 return {
   id = "warrior_visual_block",
   tier = "warrior",
@@ -10,6 +11,6 @@ return {
   start_text = "item one\nitem two\nitem three\nitem four\nitem five",
   target_text = "- item one\n- item two\n- item three\n- item four\n- item five",
   base_xp = 85,
-  time_limit = 30,
+  time_limit = 45,
   optimal_keystrokes = { "\22", "4", "j", "I", "-", " ", "\27" },
 }

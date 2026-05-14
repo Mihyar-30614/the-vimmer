@@ -1,3 +1,4 @@
+-- Ninja room: di"/da(/ci{ (text object deletion). Player deletes inside quoted strings using text objects.
 return {
   id = "ninja_surround_obj",
   tier = "ninja",
@@ -10,6 +11,6 @@ return {
   start_text = 'fn(compute("hello", (x + 1)))',
   target_text = 'fn(compute("hello", ()))',
   base_xp = 120,
-  time_limit = 40,
+  time_limit = 60,
   optimal_keystrokes = { "2", "f", "(", "d", "i", "(" },
 }

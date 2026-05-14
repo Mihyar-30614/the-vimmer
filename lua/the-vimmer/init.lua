@@ -1,3 +1,5 @@
+-- Plugin entry point. Call M.setup(opts) from your Neovim config.
+-- opts.hooks = { win = fn, death = fn } registers lifecycle callbacks (see callbacks.lua).
 local M = {}
 
 --- @param opts? table optional `{ hooks = { win = fn, death = fn }, ... }` passed to commands.register

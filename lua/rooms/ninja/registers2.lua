@@ -1,3 +1,4 @@
+-- Ninja room: "ay/"ap (named register workflow). Player yanks to register a then pastes it elsewhere.
 return {
   id = "ninja_registers2",
   tier = "ninja",
@@ -10,6 +11,6 @@ return {
   start_text = "alpha\nbeta\n[replace me]",
   target_text = "alpha\nbeta\nalpha",
   base_xp = 115,
-  time_limit = 50,
+  time_limit = 75,
   optimal_keystrokes = { '"', "a", "y", "y", "2", "j", "d", "d", '"', "a", "p" },
 }

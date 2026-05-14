@@ -1,3 +1,4 @@
+-- Beginner room: w (forward word jump). Navigation-only — no text transformation required.
 return {
   id = "beginner_w_motion",
   tier = "beginner",

@@ -1,3 +1,4 @@
+-- Ninja room: qa...q + N@a (macro at scale). Player records a macro then applies it to 5 lines with 5@a.
 return {
   id = "ninja_global_macro",
   tier = "ninja",
@@ -10,6 +11,6 @@ return {
   start_text = "foo\nfoo\nfoo\nfoo\nfoo\nfoo\nfoo\nfoo",
   target_text = "bar\nbar\nbar\nbar\nbar\nbar\nbar\nbar",
   base_xp = 110,
-  time_limit = 60,
+  time_limit = 90,
   optimal_keystrokes = { "q", "a", "c", "i", "w", "b", "a", "r", "\27", "j", "q", "7", "@", "a" },
 }

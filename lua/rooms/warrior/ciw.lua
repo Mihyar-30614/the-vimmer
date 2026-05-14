@@ -1,3 +1,4 @@
+-- Warrior room: ciw/caw (change inner/around word). Player jumps to "wrong" and replaces it with "right".
 return {
   id = "warrior_ciw",
   tier = "warrior",
@@ -10,8 +11,8 @@ return {
   start_text = "the wrong word here",
   target_text = "the right word here",
   base_xp = 70,
-  optimal_keystrokes = { "w", "c", "i", "w" },
+  optimal_keystrokes = { "w", "c", "i", "w", "r", "i", "g", "h", "t", "\27" },
   optimal_keystrokes_alternates = {
-    { "w", "c", "a", "w" },
+    { "w", "c", "a", "w", "r", "i", "g", "h", "t", " ", "\27" },
   },
 }

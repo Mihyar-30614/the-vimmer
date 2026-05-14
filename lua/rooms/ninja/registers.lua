@@ -1,3 +1,4 @@
+-- Ninja room: "ay/"ap basics. Player yanks line 1 to register a, jumps to line 4, pastes and deletes original.
 return {
   id = "ninja_registers",
   tier = "ninja",

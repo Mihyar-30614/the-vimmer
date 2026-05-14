@@ -1,3 +1,4 @@
+-- Beginner room: numeric prefixes (3w, d$). Player jumps 3 words then deletes to end of line.
 return {
   id = "beginner_counts",
   tier = "beginner",
@@ -10,6 +11,6 @@ return {
   start_text = "aaa bbb ccc ddd eee\nextra line",
   target_text = "aaa bbb ccc\nextra line",
   base_xp = 45,
-  time_limit = 25,
+  time_limit = 40,
   optimal_keystrokes = { "3", "w", "d", "$" },
 }

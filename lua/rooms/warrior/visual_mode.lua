@@ -1,3 +1,4 @@
+-- Warrior room: v/V/Ctrl-v (visual mode). Player selects "DELETE_ME" with v+e then deletes with d.
 return {
   id = "warrior_visual",
   tier = "warrior",

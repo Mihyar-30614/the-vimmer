@@ -1,3 +1,4 @@
+-- Beginner room: u/Ctrl-r (undo/redo). start_text == target_text; player triggers undo to "fix" the file.
 return {
   id = "beginner_undo_redo",
   tier = "beginner",

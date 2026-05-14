@@ -1,3 +1,4 @@
+-- Warrior room: q/@ macros intro. Player records a macro (qa), stops (q), then replays it (2@a).
 return {
   id = "warrior_macros",
   tier = "warrior",

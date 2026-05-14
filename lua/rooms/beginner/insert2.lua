@@ -1,3 +1,4 @@
+-- Beginner room: A/o/O insert variants. Player appends "!" to 3 lines using A + j repeat.
 return {
   id = "beginner_insert2",
   tier = "beginner",
@@ -10,6 +11,6 @@ return {
   start_text = "alpha\nbeta\ngamma",
   target_text = "alpha!\nbeta!\ngamma!",
   base_xp = 50,
-  time_limit = 40,
+  time_limit = 60,
   optimal_keystrokes = { "A", "!", "\27", "j", "A", "!", "\27", "j", "A", "!", "\27" },
 }

@@ -1,3 +1,4 @@
+-- Warrior room: % (jump to matching bracket). Navigation-only — player jumps to the closing bracket.
 return {
   id = "warrior_percent",
   tier = "warrior",

@@ -1,3 +1,4 @@
+-- Warrior room: /pattern + n + ciw (manual search-and-replace). Player searches, jumps, and changes each match.
 return {
   id = "warrior_n_repeat",
   tier = "warrior",
@@ -10,6 +11,6 @@ return {
   start_text = "foo is good and foo does great foo things with foo",
   target_text = "bar is good and bar does great bar things with bar",
   base_xp = 80,
-  time_limit = 60,
+  time_limit = 90,
   optimal_keystrokes = { "/", "f", "o", "o", "\r", "c", "i", "w", "b", "a", "r", "\27", "n", ".", "n", ".", "n", "." },
 }

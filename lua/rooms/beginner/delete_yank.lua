@@ -1,3 +1,4 @@
+-- Beginner room: x/dd/yy/p basics. Player deletes a single bad line with dd.
 return {
   id = "beginner_delete_yank",
   tier = "beginner",

@@ -1,5 +1,10 @@
+-- Minimal JSON encoder/decoder used as a fallback when vim.json is unavailable.
+-- encode: handles nil/bool/number/string/array/object recursively.
+-- decode: transforms JSON into Lua table syntax then runs it through loadstring.
+--   NOT a full parser — safe only for trusted local save files, not arbitrary input.
 local M = {}
 
+-- Recursively encode a Lua value to a JSON string.
 local function encode_value(v)
   local t = type(v)
   if t == "nil" then return "null"
@@ -27,6 +32,8 @@ function M.encode(t)
   return encode_value(t)
 end
 
+-- Decode a JSON string by rewriting it into Lua table syntax and eval-ing it.
+-- Works for the plugin's own save files; will break on JSON with non-string keys or complex escapes.
 function M.decode(s)
   local lua_str = s
     :gsub('"([^"]*)"%s*:', '["%1"]=')

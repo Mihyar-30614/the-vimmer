@@ -1,3 +1,4 @@
+-- Beginner room: count motions (Nj/Nk). Player jumps 4 lines down then fixes casing with ~.
 return {
   id = "beginner_hjkl2",
   tier = "beginner",
@@ -10,6 +11,6 @@ return {
   start_text = "first\nsecond\nthird\nfourth\nFIFTH",
   target_text = "first\nsecond\nthird\nfourth\nfifth",
   base_xp = 40,
-  time_limit = 30,
+  time_limit = 45,
   optimal_keystrokes = { "4", "j", "~", "~", "~", "~", "~" },
 }

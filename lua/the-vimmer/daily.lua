@@ -1,3 +1,6 @@
+-- Deterministic daily challenge: room + mutators are seeded from the date string
+-- (YYYY-MM-DD → integer seed) so every player sees the same room on the same day.
+-- Results are cached in `prog` fields so re-calling on the same day returns the same room.
 local M = {}
 
 local progress = require("the-vimmer.progress")
@@ -7,7 +10,9 @@ function M.today_stamp()
   return os.date("%Y-%m-%d")
 end
 
---- Resolve today's challenge room + mutators; persists prog fields when new day rolls.
+-- Resolve today's challenge room + mutators; writes daily_stamp/daily_room_id/daily_mutators
+-- into prog when a new day is detected (caller must call progress.save afterwards).
+-- 65% chance of adding one unlocked mutator to the daily run.
 function M.resolve_for_today(prog, rooms_by_tier)
   local stamp = M.today_stamp()
   prog.daily_stamp = prog.daily_stamp or ""

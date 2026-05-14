@@ -1,5 +1,9 @@
+-- Optional Telescope fuzzy-picker for rooms. Returns false (not an error) when telescope.nvim
+-- is absent — caller shows a fallback notify. Invoked by :VimmerPick.
 local M = {}
 
+-- Open a Telescope picker listing every room across all tiers.
+-- Selecting an entry closes the picker and calls commands.start_flow with that room.
 function M.pick_room()
   local ok, _ = pcall(require, "telescope")
   if not ok then return false end

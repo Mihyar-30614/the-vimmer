@@ -1,3 +1,5 @@
+-- Beginner boss: 3-phase gauntlet. Phase 1 = delete lines, Phase 2 = append chars, Phase 3 = reorder lines.
+-- Unlocks warrior tier on clear.
 return {
   id = "beginner_boss",
   tier = "beginner",
@@ -7,7 +9,7 @@ return {
   description = "Three-phase trial. All beginner skills tested.",
   usage_tip = "Use everything you have learned: navigate, insert, delete.",
   base_xp = 300,
-  time_limit = 120,
+  time_limit = 180,
   phases = {
     {
       tip = "Phase 1: Delete the X lines",

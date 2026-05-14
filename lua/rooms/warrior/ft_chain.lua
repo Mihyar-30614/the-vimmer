@@ -1,3 +1,4 @@
+-- Warrior room: f/t/;/, chain. Player uses f then ; to repeat jumps across multiple targets.
 return {
   id = "warrior_ft_chain",
   tier = "warrior",
@@ -10,6 +11,6 @@ return {
   start_text = "print(hello, world, foo)",
   target_text = "print(hello, world, bar)",
   base_xp = 70,
-  time_limit = 30,
+  time_limit = 45,
   optimal_keystrokes = { "f", "f", "c", "w", "b", "a", "r", "\27" },
 }

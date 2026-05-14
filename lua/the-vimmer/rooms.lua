@@ -1,3 +1,8 @@
+-- Room loader and validator.
+-- Loads .lua files from lua/rooms/<tier>/ at startup; also scans nvim runtimepath
+-- so plugin authors can ship extra rooms without forking this repo.
+-- acceptable_key_sequences flattens optimal_keystrokes + alternates into a list
+-- used by game.lua's sequence-state machine to match player input.
 local M = {}
 
 local TIERS = { "beginner", "warrior", "ninja" }
@@ -13,6 +18,7 @@ local BOSS_REQUIRED = {
   "usage_tip", "base_xp", "phases", "time_limit",
 }
 
+-- Validate the optional optimal_keystrokes_alternates list: must be a table of non-empty string arrays.
 local function validate_alternates(alts)
   if alts == nil then return true end
   if type(alts) ~= "table" then return false end
@@ -25,6 +31,7 @@ local function validate_alternates(alts)
   return true
 end
 
+-- Validate required room fields; boss rooms have a different required set (phases instead of start/target).
 function M.validate(room)
   if room.is_boss then
     for _, field in ipairs(BOSS_REQUIRED) do
@@ -46,7 +53,8 @@ function M.validate(room)
   return true
 end
 
---- Primary optimal_keystrokes plus optional parallel sequences (positional matching).
+-- Return a flat list of all valid key sequences for a room/phase context.
+-- Primary sequence first, then alternates. game.lua tracks progress through each simultaneously.
 function M.acceptable_key_sequences(ctx)
   local seqs = {}
   local primary = ctx.optimal_keystrokes
@@ -61,11 +69,13 @@ function M.acceptable_key_sequences(ctx)
   return seqs
 end
 
+-- Resolve the built-in rooms directory relative to this source file.
 local function rooms_dir()
   local src = debug.getinfo(1, "S").source:match("^@(.+)")
   return src and src:match("(.+)/the%-vimmer/rooms%.lua$") .. "/rooms" or "lua/rooms"
 end
 
+-- List *.lua files in a directory; uses vim.fn.glob when available, falls back to `ls`.
 local function list_lua_files(dir)
   if vim and vim.fn then
     local glob = vim.fn.glob(dir .. "/*.lua", false, true)
@@ -80,6 +90,8 @@ local function list_lua_files(dir)
   return files
 end
 
+-- Collect room file paths from the Neovim runtimepath for a given tier.
+-- Enables third-party plugins to add rooms by placing files in the-vimmer/rooms/<tier>/.
 local function collect_runtime_room_paths(tier)
   local paths = {}
   local seen = {}
@@ -98,6 +110,7 @@ local function collect_runtime_room_paths(tier)
   return paths
 end
 
+-- Load and validate all rooms for a tier; duplicate IDs are skipped with a warning.
 function M.load_tier(tier)
   local builtin_dir = rooms_dir() .. "/" .. tier
   local files = list_lua_files(builtin_dir)
@@ -128,6 +141,7 @@ function M.load_tier(tier)
   return result
 end
 
+-- Find a room by ID, scanning all tiers. Returns nil if not found.
 function M.get_room(id)
   for _, tier in ipairs(TIERS) do
     for _, room in ipairs(M.load_tier(tier)) do

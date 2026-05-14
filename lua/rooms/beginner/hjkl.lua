@@ -1,3 +1,4 @@
+-- Beginner room: hjkl basic navigation. Navigation-only — no text transformation required.
 return {
   id = "beginner_hjkl",
   tier = "beginner",

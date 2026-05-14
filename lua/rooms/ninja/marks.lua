@@ -1,3 +1,4 @@
+-- Ninja room: m<a> / '<a> / `<a> (marks). Player sets a mark, moves away, then jumps back to it.
 return {
   id = "ninja_marks",
   tier = "ninja",
@@ -10,6 +11,6 @@ return {
   start_text = "START\n\n\n\n\n\n\n\n\n\nEND",
   target_text = "MARKED\n\n\n\n\n\n\n\n\n\nDONE",
   base_xp = 110,
-  time_limit = 60,
+  time_limit = 90,
   optimal_keystrokes = { "m", "a", "9", "j", "c", "i", "w", "D", "O", "N", "E", "\27", "'", "a", "c", "i", "w", "M", "A", "R", "K", "E", "D", "\27" },
 }

@@ -1,11 +1,17 @@
+-- All Vimmer highlight group definitions and derived helper functions.
+-- hp_group / timer_group / combo_group map numeric game state → a highlight group name.
+-- build_diff_line handles multi-byte-safe layout for the teach-screen before→after row.
+-- visible_len counts Unicode codepoints (not bytes) to correctly measure display width.
 local M = {}
 
+-- Map HP value to one of three highlight groups (green / orange / red).
 function M.hp_group(hp)
   if hp > 60 then return "VimmerHP_high"
   elseif hp > 30 then return "VimmerHP_mid"
   else return "VimmerHP_low" end
 end
 
+-- Map remaining/total time to a colour: >50% green, >25% orange, else red.
 function M.timer_group(remaining, total)
   if not total or total == 0 then return "VimmerTimerOk" end
   local pct = remaining / total
@@ -14,6 +20,7 @@ function M.timer_group(remaining, total)
   else return "VimmerTimerDanger" end
 end
 
+-- Count Unicode codepoints by walking UTF-8 byte lengths (1/2/3/4-byte sequences).
 local function visible_len(s)
   local len = 0
   local i = 1
@@ -28,6 +35,9 @@ local function visible_len(s)
   return len
 end
 
+-- Build a "before → after" display line for the teach screen.
+-- Returns a single-element table when it fits on one line, two elements when it must wrap.
+-- | in room data renders as ▌ (cursor indicator); \n renders as ↵.
 function M.build_diff_line(before_ex, after_ex, max_w)
   local before_disp = before_ex:gsub("\n", " ↵ "):gsub("|", "▌")
   local after_disp = after_ex:gsub("\n", " ↵ "):gsub("|", "▌")
@@ -38,6 +48,7 @@ function M.build_diff_line(before_ex, after_ex, max_w)
   return { before_disp, "→  " .. after_disp }
 end
 
+-- Return a highlight group for the combo counter, or nil when combo is below 5.
 function M.combo_group(combo)
   if combo >= 20 then return "VimmerComboCrit"
   elseif combo >= 10 then return "VimmerComboFire"

@@ -1,3 +1,4 @@
+-- Ninja boss: 3-phase gauntlet. Phase 1 = named register yank/paste, Phase 2 = di" text object, Phase 3 = macro+ciw.
 return {
   id = "ninja_boss",
   tier = "ninja",
@@ -7,7 +8,7 @@ return {
   description = "Three-phase trial. Registers, text objects, macro composition.",
   usage_tip = "Yank into named registers, delete with text objects, record complex macros.",
   base_xp = 600,
-  time_limit = 180,
+  time_limit = 270,
   phases = {
     {
       tip = "Phase 1: Yank line 1 into register a, replace line 3 with it",

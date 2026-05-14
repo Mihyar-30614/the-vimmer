@@ -1,3 +1,4 @@
+-- Warrior room: cw + . (change-word and dot repeat). Player changes one occurrence then repeats with dot.
 return {
   id = "warrior_change_chain",
   tier = "warrior",
@@ -10,6 +11,6 @@ return {
   start_text = "old_name(x)\nold_name(y)\nold_name(z)",
   target_text = "new_name(x)\nnew_name(y)\nnew_name(z)",
   base_xp = 75,
-  time_limit = 35,
+  time_limit = 55,
   optimal_keystrokes = { "c", "w", "n", "e", "w", "_", "n", "a", "m", "e", "\27", "j", ".", "j", "." },
 }

@@ -1,3 +1,4 @@
+-- Warrior room: f/t (find-char jump). Navigation-only — player jumps to a colon in the line.
 return {
   id = "warrior_f_motion",
   tier = "warrior",

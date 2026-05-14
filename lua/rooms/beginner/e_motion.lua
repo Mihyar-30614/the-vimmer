@@ -1,3 +1,4 @@
+-- Beginner room: e (end-of-word jump). Navigation-only — no text transformation required.
 return {
   id = "beginner_e_motion",
   tier = "beginner",

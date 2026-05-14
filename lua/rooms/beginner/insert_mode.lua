@@ -1,3 +1,4 @@
+-- Beginner room: i/a/o (insert mode entry). Player navigates to a gap and inserts a missing letter.
 return {
   id = "beginner_insert_mode",
   tier = "beginner",

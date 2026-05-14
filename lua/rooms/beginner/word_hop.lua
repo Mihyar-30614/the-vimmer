@@ -1,3 +1,4 @@
+-- Beginner room: w/b/e motion combo. Player hops 2 words with 2w then changes the word with cw.
 return {
   id = "beginner_word_hop",
   tier = "beginner",
@@ -10,6 +11,6 @@ return {
   start_text = "the quick brown fox jumps",
   target_text = "the quick green fox jumps",
   base_xp = 40,
-  time_limit = 35,
+  time_limit = 55,
   optimal_keystrokes = { "2", "w", "c", "w", "g", "r", "e", "e", "n", "\27" },
 }
