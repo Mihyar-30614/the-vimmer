@@ -273,3 +273,27 @@ describe("ui.common.wrap_keys", function()
     assert.same({}, c.wrap_keys({}, 40))
   end)
 end)
+
+describe("ui.common.pb_line", function()
+  it("formats both keys and time", function()
+    assert.equals("  PB: 4 keys · 8.0s", c.pb_line({ keys = 4, seconds = 8 }))
+  end)
+
+  it("shows keys only when seconds is missing", function()
+    assert.equals("  PB: 4 keys", c.pb_line({ keys = 4 }))
+  end)
+
+  it("shows time only when keys is missing", function()
+    assert.equals("  PB: 8.0s", c.pb_line({ seconds = 8 }))
+  end)
+
+  it("returns nil when neither side is present", function()
+    assert.is_nil(c.pb_line({}))
+    assert.is_nil(c.pb_line({ keys = 0, seconds = 0 }))
+  end)
+
+  it("returns nil for a non-table argument", function()
+    assert.is_nil(c.pb_line(nil))
+    assert.is_nil(c.pb_line("x"))
+  end)
+end)
