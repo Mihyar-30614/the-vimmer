@@ -36,6 +36,18 @@ local function apply_buffer_hygiene(buf)
   api.nvim_buf_set_option(buf, "buftype", "nofile")
   api.nvim_buf_set_option(buf, "swapfile", false)
   api.nvim_buf_set_option(buf, "undolevels", 1000)
+
+  -- Pin a deterministic indent regime so room solutions don't depend on the
+  -- user's ambient config. `autoindent` copies the previous line's literal
+  -- indent on `o`/`O`/<CR>; clearing `indentexpr` and the C/smart-indent flags
+  -- stops filetype indent scripts from computing a different (config-dependent)
+  -- indent. Without this, e.g. `o` produces no indent under `filetype indent
+  -- off`, so a perfectly-played insert room can never match its target_text.
+  api.nvim_buf_set_option(buf, "autoindent", true)
+  api.nvim_buf_set_option(buf, "smartindent", false)
+  api.nvim_buf_set_option(buf, "cindent", false)
+  api.nvim_buf_set_option(buf, "indentexpr", "")
+  api.nvim_buf_set_option(buf, "expandtab", true)
   for _, flag in ipairs({
     "minipairs_disable",
     "autopairs_disable",

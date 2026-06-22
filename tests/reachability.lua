@@ -36,6 +36,15 @@ local function run_sequence(ctx, sequence)
     vim.bo[buf].filetype = ctx.filetype
   end
 
+  -- Mirror play.lua's deterministic indent regime (apply_buffer_hygiene),
+  -- applied after filetype so it overrides any filetype indentexpr. Keeps the
+  -- harness honest about what a player actually experiences.
+  vim.bo[buf].autoindent = true
+  vim.bo[buf].smartindent = false
+  vim.bo[buf].cindent = false
+  vim.bo[buf].indentexpr = ""
+  vim.bo[buf].expandtab = true
+
   local lines = vim.split(ctx.start_text, "\n", { plain = true })
   api.nvim_buf_set_lines(buf, 0, -1, false, lines)
 
