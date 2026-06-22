@@ -197,6 +197,7 @@ the player (deviation costs HP) and is checked by the reachability harness.
 | `cursor_start` | `{ row=1, col=1 }` | 1-based cursor position in the play buffer. |
 | `time_limit` | `nil` | Seconds before death; `nil` = untimed. |
 | `bo` | `nil` | Buffer-option overrides applied to the play buffer, e.g. `{ shiftwidth = 2, expandtab = true }`. |
+| `efficiency_hint` | `nil` | One-line tip shown on the results screen when the player used more keys than the most efficient accepted path. Omit it and a generic fallback line is shown instead. |
 
 ### Boss rooms
 
