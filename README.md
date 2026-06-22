@@ -97,6 +97,7 @@ Or run directly from Neovim:
 | `:VimmerPick` | Fuzzy-pick a room (requires [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)) |
 | `:VimmerDaily` | Today’s seeded challenge + optional random unlocked mutator |
 | `:VimmerProgress` | Floating panel: XP, streak, tiers, suggested drill, mutators |
+| `:VimmerDrill` | Play your 3 weakest rooms back-to-back (by keystroke waste) |
 | `:VimmerReset` | Reset all progress |
 
 ### Mutators

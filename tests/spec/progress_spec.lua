@@ -311,3 +311,71 @@ describe("progress.record_best_keys", function()
     assert.same({}, progress.reset_data().room_best_keys)
   end)
 end)
+
+describe("progress.weakest_regular_room_ids", function()
+  local function make()
+    local prog = progress.reset_data()
+    prog.room_stats = {
+      a = { attempts = 1, keystrokes_used = 10, keystrokes_over_budget = 1 }, -- waste 0.1
+      b = { attempts = 1, keystrokes_used = 10, keystrokes_over_budget = 5 }, -- waste 0.5
+      c = { attempts = 1, keystrokes_used = 10, keystrokes_over_budget = 3 }, -- waste 0.3
+      z = { attempts = 0, keystrokes_used = 0,  keystrokes_over_budget = 0 }, -- ineligible
+    }
+    local rooms_by_tier = {
+      beginner = {
+        { id = "a" }, { id = "b" }, { id = "c" }, { id = "z" },
+      },
+      warrior = {}, ninja = {},
+    }
+    return prog, rooms_by_tier
+  end
+
+  it("orders by waste ratio descending", function()
+    local prog, rby = make()
+    assert.same({ "b", "c", "a" }, progress.weakest_regular_room_ids(prog, rby, 3))
+  end)
+
+  it("limits to n", function()
+    local prog, rby = make()
+    assert.same({ "b", "c" }, progress.weakest_regular_room_ids(prog, rby, 2))
+  end)
+
+  it("excludes rooms with no attempts or no keystrokes", function()
+    local prog, rby = make()
+    local ids = progress.weakest_regular_room_ids(prog, rby, 10)
+    assert.same({ "b", "c", "a" }, ids)
+  end)
+
+  it("excludes boss rooms", function()
+    local prog, rby = make()
+    rby.beginner[#rby.beginner + 1] = { id = "beginner_boss", is_boss = true }
+    prog.room_stats.beginner_boss = { attempts = 1, keystrokes_used = 10, keystrokes_over_budget = 9 }
+    local ids = progress.weakest_regular_room_ids(prog, rby, 10)
+    assert.same({ "b", "c", "a" }, ids)
+  end)
+
+  it("excludes locked-tier rooms", function()
+    local prog, rby = make()
+    rby.warrior = { { id = "w1" } }
+    prog.room_stats.w1 = { attempts = 1, keystrokes_used = 10, keystrokes_over_budget = 9 }
+    local ids = progress.weakest_regular_room_ids(prog, rby, 10)
+    assert.same({ "b", "c", "a" }, ids)
+  end)
+
+  it("breaks ties by id ascending", function()
+    local prog, rby = make()
+    prog.room_stats.c.keystrokes_over_budget = 5
+    assert.same({ "b", "c", "a" }, progress.weakest_regular_room_ids(prog, rby, 3))
+  end)
+
+  it("returns empty when nothing is eligible", function()
+    local prog = progress.reset_data()
+    local rby = { beginner = { { id = "a" } }, warrior = {}, ninja = {} }
+    assert.same({}, progress.weakest_regular_room_ids(prog, rby, 3))
+  end)
+
+  it("singular wrapper returns the first id", function()
+    local prog, rby = make()
+    assert.equals("b", progress.weakest_regular_room_id(prog, rby))
+  end)
+end)

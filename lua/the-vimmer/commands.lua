@@ -106,6 +106,15 @@ function M.start_flow(room, flow_opts)
           show_map()
           return
         end
+        if flow_opts.queue and flow_opts.queue_idx then
+          local nxt = flow_opts.queue[flow_opts.queue_idx + 1]
+          if nxt then
+            M.start_flow(nxt, { queue = flow_opts.queue, queue_idx = flow_opts.queue_idx + 1 })
+          else
+            show_map()
+          end
+          return
+        end
         local tier_rooms = d.rooms.load_tier(room.tier)
         local next_room = nil
         for i, r in ipairs(tier_rooms) do
@@ -217,6 +226,24 @@ function M.register(opts)
     d.progress.save(prog)
     M.start_flow(challenge_room, { mutators = mutators, daily = true })
   end, { desc = "Today's seeded the-vimmer challenge" })
+
+  vim.api.nvim_create_user_command("VimmerDrill", function()
+    local d = deps()
+    local prog = d.progress.load()
+    local rooms_by_tier = build_rooms_by_tier(d)
+    local ids = d.progress.weakest_regular_room_ids(prog, rooms_by_tier, 3)
+    local queue = {}
+    for _, id in ipairs(ids) do
+      local r = d.rooms.get_room(id)
+      if r then queue[#queue + 1] = r end
+    end
+    if #queue == 0 then
+      vim.notify("the-vimmer: no drillable rooms yet — play a few first",
+        vim.log.levels.INFO)
+      return
+    end
+    M.start_flow(queue[1], { queue = queue, queue_idx = 1 })
+  end, { desc = "Drill your 3 weakest the-vimmer rooms" })
 
   vim.api.nvim_create_user_command("VimmerPick", function()
     local ok = require("the-vimmer.telescope").pick_room()
