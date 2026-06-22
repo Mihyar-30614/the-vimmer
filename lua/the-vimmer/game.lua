@@ -18,6 +18,7 @@ function M.new()
     keystrokes_used = 0,         -- total keys pressed this phase
     keystrokes_budget = 0,       -- ceil(#optimal_keystrokes * 1.5), or *1.0 under iron
     keystrokes_over_budget = 0,  -- count of over-budget keys this run (HP-draining)
+    keystroke_log = {},          -- raw keys pressed this phase (capped at 300)
 
     run_started_at = nil,
     run_seconds = nil,     -- wall-clock duration of the last run
@@ -84,6 +85,7 @@ function M.new()
     if not self.current_room then return end
     self.hp = 100
     self.keystrokes_over_budget = 0
+    self.keystroke_log = {}
     self.run_started_at = _now()
     self.timer_death = false
     if self.current_room.is_boss then
@@ -105,6 +107,9 @@ function M.new()
   function g:register_key(_key)
     if self.state ~= "playing" then return end
     if not self.current_room then return end
+    if #self.keystroke_log < 300 then
+      self.keystroke_log[#self.keystroke_log + 1] = _key
+    end
     self.keystrokes_used = self.keystrokes_used + 1
     if self.keystrokes_used > self.keystrokes_budget then
       self.keystrokes_over_budget = self.keystrokes_over_budget + 1
@@ -114,6 +119,10 @@ function M.new()
 
   function g:is_dead()
     return self.hp <= 0
+  end
+
+  function g:keystroke_log_keys()
+    return self.keystroke_log
   end
 
   -- Called once per second by the UI timer loop.
@@ -164,6 +173,7 @@ function M.new()
   -- HP, timer, and the over-budget counter carry over.
   function g:advance_boss_phase()
     self.boss_phase = self.boss_phase + 1
+    self.keystroke_log = {}
     self:_reset_keystroke_budget()
   end
 

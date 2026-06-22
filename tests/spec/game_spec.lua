@@ -103,6 +103,41 @@ describe("game keystroke budget", function()
   end)
 end)
 
+describe("game keystroke log", function()
+  local g
+  before_each(function()
+    g = game.new()
+    g:start_room(make_room())  -- optimal {"w","b"}
+    g:begin_play()
+  end)
+
+  it("starts empty after begin_play", function()
+    assert.same({}, g:keystroke_log_keys())
+  end)
+
+  it("appends each registered key in order", function()
+    g:register_key("w")
+    g:register_key("\27")  -- <Esc> raw byte
+    assert.same({ "w", "\27" }, g:keystroke_log_keys())
+  end)
+
+  it("logs keys even when over budget", function()
+    for _ = 1, 5 do g:register_key("x") end  -- budget is 3
+    assert.equals(5, #g:keystroke_log_keys())
+  end)
+
+  it("resets on a fresh begin_play", function()
+    g:register_key("w")
+    g:begin_play()
+    assert.same({}, g:keystroke_log_keys())
+  end)
+
+  it("caps the log at 300 entries", function()
+    for _ = 1, 350 do g:register_key("x") end
+    assert.equals(300, #g:keystroke_log_keys())
+  end)
+end)
+
 describe("game streak", function()
   it("increments streak on dismiss_results", function()
     local g = game.new()
