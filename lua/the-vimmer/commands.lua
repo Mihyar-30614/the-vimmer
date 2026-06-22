@@ -55,9 +55,9 @@ function M.start_flow(room, flow_opts)
   end
 
   local function on_win()
-    local first_clear = prog.cleared[room.id] ~= true
-
     d.ui._close_play()
+    require("the-vimmer.ui.transition").run("victory", function()
+    local first_clear = prog.cleared[room.id] ~= true
     g:complete_room()
 
     local prev_best = (prog.room_best or {})[room.id]
@@ -153,10 +153,12 @@ function M.start_flow(room, flow_opts)
           efficiency_hint = phase_view.efficiency_hint,
         },
       })
+    end)
   end
 
   local function on_death()
     d.ui._close_play()
+    require("the-vimmer.ui.transition").run("defeat", function()
     g:retry_room()
     prog = d.progress.load()
     prog.streak = 0
@@ -177,6 +179,7 @@ function M.start_flow(room, flow_opts)
         over_budget_count = g.keystrokes_over_budget,
       }
     )
+    end)
   end
 
   g:start_room(room)

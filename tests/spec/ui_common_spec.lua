@@ -178,6 +178,47 @@ describe("ui.common.game chrome", function()
   end)
 end)
 
+describe("ui.common.build_play_hud", function()
+  it("renders combat stats and mission sections", function()
+    local lines, hls = c.build_play_hud({
+      width = 26,
+      icons = { hp = "H", timer = "T", streak = "S", keys = "K", warn = "!" },
+      display_hp = 80,
+      hp_bar = "[████████░░]",
+      hp_group = "VimmerHP_high",
+      streak = 2,
+      keys_used = 3,
+      keys_budget = 8,
+      command = "ciw",
+      goal = "Change the word",
+    })
+    local text = table.concat(lines, "\n")
+    assert.is_truthy(text:match("COMBAT"))
+    assert.is_truthy(text:match("MISSION"))
+    assert.is_truthy(text:match("ciw"))
+    assert.is_truthy(text:match("Change the word"))
+    assert.is_true(#hls > 0)
+  end)
+
+  it("shows timer and boss phase rows when provided", function()
+    local lines = select(1, c.build_play_hud({
+      width = 26,
+      icons = { phase = "P" },
+      display_hp = 50,
+      hp_bar = "[█████░░░░░]",
+      timer_remaining = 45,
+      initial_time = 60,
+      timer_bar = "[██████░░]",
+      timer_group = "VimmerTimerOk",
+      boss_phase = 2,
+      boss_total = 3,
+    }))
+    local text = table.concat(lines, "\n")
+    assert.is_truthy(text:match("TIMER"))
+    assert.is_truthy(text:match("PHASE 2 / 3"))
+  end)
+end)
+
 describe("ui.common.fmt_run_seconds", function()
   it("formats with one decimal and a trailing s", function()
     assert.equal("0.0s", c.fmt_run_seconds(0))

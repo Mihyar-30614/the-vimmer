@@ -133,6 +133,94 @@ function M.game_hud_row(width, xp, streak, cleared, total)
   return M.spread_row(left, table.concat(parts, "  ·  "), width)
 end
 
+function M.play_hud_section(title)
+  return " " .. string.format("══ %s ══", title)
+end
+
+-- Build play-sidebar lines + highlight specs. Pure / headless-testable.
+-- ctx.icons is a table of glyph strings (see ui.icons).
+function M.build_play_hud(ctx)
+  local lines, hls = {}, {}
+  local function add(text, group)
+    lines[#lines + 1] = text
+    if group then hls[#hls + 1] = { group, #lines - 1, 0, -1 } end
+  end
+
+  local ic = ctx.icons or {}
+  local hp_grp = ctx.hp_group or "VimmerHP_high"
+
+  add("")
+  add(M.play_hud_section("COMBAT"), "VimmerSection")
+  add("")
+  add(string.format(" %s  HP", ic.hp or "HP"), "VimmerTitle")
+  add(" " .. (ctx.hp_bar or ""), hp_grp)
+  add(string.format(" %d / 100", ctx.display_hp or 0), hp_grp)
+  add("")
+
+  if ctx.feedback and ctx.feedback ~= "" then
+    add(string.format(" %s  %s", ic.warn or "!", ctx.feedback), "VimmerDeath")
+    add("")
+  end
+
+  if ctx.timer_remaining and ctx.initial_time then
+    local t_grp = ctx.timer_group or "VimmerTimerOk"
+    local mins = math.floor(ctx.timer_remaining / 60)
+    local secs = ctx.timer_remaining % 60
+    add(string.format(" %s  TIMER", ic.timer or "T"), "VimmerTitle")
+    add(" " .. (ctx.timer_bar or ""), t_grp)
+    add(string.format(" %d:%02d", mins, secs), t_grp)
+    if ctx.timer_low then
+      add(" HURRY — time low!", "VimmerTimerDanger")
+    end
+    add("")
+  end
+
+  add(string.format(" %s  STREAK", ic.streak or "*"), "VimmerTitle")
+  add(string.format(" x%d", ctx.streak or 0), "VimmerTierWarrior")
+  add("")
+
+  local over = (ctx.keys_used or 0) > (ctx.keys_budget or 0)
+  add(string.format(" %s  KEYS", ic.keys or "K"), "VimmerTitle")
+  add(string.format(" %d / %d", ctx.keys_used or 0, ctx.keys_budget or 0),
+    over and "VimmerDamage" or "VimmerTitle")
+  if over then
+    add(" OVER BUDGET", "VimmerTimerDanger")
+  end
+  add("")
+
+  if ctx.boss_phase and ctx.boss_total and ctx.boss_total > 1 then
+    add(string.format(" %s  PHASE %d / %d", ic.phase or "P",
+      ctx.boss_phase, ctx.boss_total), "VimmerBoss")
+    add("")
+  end
+
+  if ctx.power_up_str and ctx.power_up_str ~= "" then
+    add(" " .. ctx.power_up_str, "VimmerXP")
+    add("")
+  end
+
+  add(" " .. string.rep("─", ctx.width and (ctx.width - 2) or 22))
+  add("")
+  add(M.play_hud_section("MISSION"), "VimmerSection")
+  add("")
+
+  if ctx.command and ctx.command ~= "" then
+    for _, ln in ipairs(M.wrap_teach_text(ctx.command, (ctx.width or 24) - 2)) do
+      add(" " .. ln, "VimmerCommand")
+    end
+  end
+
+  if ctx.goal and ctx.goal ~= "" then
+    add("")
+    add(" GOAL:", "VimmerXP")
+    for _, ln in ipairs(M.wrap_teach_text(ctx.goal, (ctx.width or 24) - 2)) do
+      add(" " .. ln, "VimmerTeachTip")
+    end
+  end
+
+  return lines, hls
+end
+
 function M.format_key(k)
   if k == "\27"           then return "<Esc>"
   elseif k == "\r"        then return "<CR>"

@@ -8,6 +8,9 @@
 -- opts.border     = "sharp" | "rounded"
 --                    "sharp" (default)   - double-line box corners (╔╗╚╝).
 --                    "rounded"           - light arc corners (╭╮╰╯).
+-- opts.icons      = "unicode" | "ascii"
+--                    "unicode" (default) - symbols/emoji icons in HUD and menus.
+--                    "ascii"             - plain-text icon fallback.
 local M = {}
 
 M.config = M.config or {}
@@ -18,6 +21,7 @@ function M.setup(opts)
   M.config.colorblind = opts.colorblind == true
   M.config.theme = opts.theme or "dracula"
   M.config.border = opts.border or "sharp"
+  M.config.icons = opts.icons or "unicode"
   require("the-vimmer.highlights").setup()
   require("the-vimmer.commands").register(opts)
 end

@@ -125,7 +125,7 @@ function M.open_teach(room, flow_opts_or_cb, maybe_cb)
 
   vim.keymap.set("n", "<CR>", function()
     api.nvim_win_close(win, true)
-    on_begin()
+    require("the-vimmer.ui.transition").run("enter_play", on_begin)
   end, { buffer = buf, nowait = true, silent = true })
 
   vim.keymap.set("n", "r", function()

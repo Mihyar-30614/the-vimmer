@@ -3,6 +3,7 @@ local api = vim.api
 local common = require("the-vimmer.ui.common")
 local float  = require("the-vimmer.ui.float")
 local progress = require("the-vimmer.progress")
+local icons = require("the-vimmer.ui.icons")
 
 local TIER_COLORS = {
   beginner    = "VimmerTierBeginner",
@@ -53,10 +54,10 @@ end
 
 local function boss_hint_game(boss_room, boss_cleared, boss_unlocked, cleared_ct, total_ct)
   if not boss_room then return "" end
-  if boss_cleared then return "⚔ CLEARED" end
-  if boss_unlocked then return "⚔ READY" end
+  if boss_cleared then return icons.get("boss") .. " CLEARED" end
+  if boss_unlocked then return icons.get("boss") .. " READY" end
   local need = math.ceil(math.max(total_ct, 1) * 0.8)
-  return string.format("%d/%d ⚔", cleared_ct, need)
+  return string.format("%d/%d %s", cleared_ct, need, icons.get("boss"))
 end
 
 function M.open_map(progress_data, rooms_by_tier, on_select)
@@ -82,7 +83,7 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
     rooms_by_tier, progress_data.cleared)
 
   add(b.top)
-  add(common.spread_row("⚔  WORLD MAP  ⚔",
+  add(common.spread_row(icons.get("hud") .. "  WORLD MAP  " .. icons.get("hud"),
     string.format("LV %02d", common.game_level(progress_data.total_xp)), width),
     "VimmerPanel")
   add(b.row(common.game_hud_row(
@@ -96,12 +97,12 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
     local weak_room = weak_id and rooms_mod.get_room(weak_id)
     if weak_room then
       add(b.row(common.game_section("QUICK PLAY", width)), "VimmerSection")
-      add(b.row(common.game_menu_row(false, "★", weak_room.title, room_title_max)),
+      add(b.row(common.game_menu_row(false, icons.get("star"), weak_room.title, room_title_max)),
         "VimmerBadge")
       selectable[#selectable + 1] = {
         line = #lines,
         room = weak_room,
-        icon = "★",
+        icon = icons.get("star"),
         title = weak_room.title,
         title_max = room_title_max,
         hl = "VimmerBadge",
@@ -118,7 +119,7 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
 
     if not unlocked then
       add(b.row(common.game_section(
-        string.format("🔒 %s · %s", roman, label), width)), "VimmerLocked")
+        icons.get("lock") .. " " .. roman .. " · " .. label, width)), "VimmerLocked")
       add(b.row(string.format("      %s", TIER_PREREQ[tier] or "locked")),
         "VimmerTeachFoot")
     else
@@ -137,14 +138,14 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
 
       for _, room in ipairs(tier_rooms) do
         if progress_data.cleared[room.id] then
-          add(b.row(common.game_menu_row(false, "✓", room.title, room_title_max)),
+          add(b.row(common.game_menu_row(false, icons.get("check"), room.title, room_title_max)),
             "VimmerCleared")
         else
-          add(b.row(common.game_menu_row(false, "○", room.title, room_title_max)))
+          add(b.row(common.game_menu_row(false, icons.get("ready"), room.title, room_title_max)))
           selectable[#selectable + 1] = {
             line = #lines,
             room = room,
-            icon = "○",
+            icon = icons.get("ready"),
             title = room.title,
             title_max = room_title_max,
           }
@@ -153,21 +154,21 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
 
       if boss_room then
         if boss_cleared then
-          add(b.row(common.game_menu_row(false, "✓",
+          add(b.row(common.game_menu_row(false, icons.get("check"),
             "BOSS · " .. boss_room.title, boss_title_max)), "VimmerCleared")
         elseif boss_unlocked then
-          add(b.row(common.game_menu_row(false, "⚔",
+          add(b.row(common.game_menu_row(false, icons.get("boss"),
             "BOSS · " .. boss_room.title, boss_title_max)), "VimmerBoss")
           selectable[#selectable + 1] = {
             line = #lines,
             room = boss_room,
-            icon = "⚔",
+            icon = icons.get("boss"),
             title = "BOSS · " .. boss_room.title,
             title_max = boss_title_max,
             hl = "VimmerBoss",
           }
         else
-          add(b.row(common.game_menu_row(false, "🔒",
+          add(b.row(common.game_menu_row(false, icons.get("lock"),
             "BOSS · " .. boss_room.title, boss_title_max)), "VimmerLocked")
         end
       end

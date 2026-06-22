@@ -53,6 +53,52 @@ function M.multi_flash(buf, steps, callback)
   run(1)
 end
 
+-- Full-editor overlay flash for screen transitions between floats/tabs.
+function M.multi_overlay_flash(steps, callback)
+  local overlay_ns = api.nvim_create_namespace("the-vimmer-overlay")
+  local win, buf
+
+  local function cleanup()
+    if win and api.nvim_win_is_valid(win) then
+      api.nvim_win_close(win, true)
+    end
+    win, buf = nil, nil
+  end
+
+  local function run(i)
+    if i > #steps then
+      cleanup()
+      if callback then callback() end
+      return
+    end
+    local group, duration = steps[i][1], steps[i][2]
+    if group then
+      if not win or not api.nvim_win_is_valid(win) then
+        buf = api.nvim_create_buf(false, true)
+        api.nvim_buf_set_lines(buf, 0, -1, false, { "" })
+        api.nvim_buf_set_option(buf, "modifiable", false)
+        api.nvim_buf_set_option(buf, "bufhidden", "wipe")
+        win = api.nvim_open_win(buf, false, {
+          relative = "editor", row = 0, col = 0,
+          width = vim.o.columns, height = vim.o.lines,
+          style = "minimal", border = "none", focusable = false,
+          zindex = 300,
+        })
+        vim.wo[win].winhighlight = "Normal:VimmerPanel"
+        pcall(function() vim.wo[win].winblend = 25 end)
+      end
+      if api.nvim_buf_is_valid(buf) then
+        api.nvim_buf_clear_namespace(buf, overlay_ns, 0, -1)
+        api.nvim_buf_add_highlight(buf, overlay_ns, group, 0, 0, -1)
+      end
+    elseif win and api.nvim_win_is_valid(win) then
+      api.nvim_buf_clear_namespace(buf, overlay_ns, 0, -1)
+    end
+    vim.defer_fn(function() run(i + 1) end, duration)
+  end
+  run(1)
+end
+
 function M.open_float(lines, width)
   local height = #lines
   local buf = api.nvim_create_buf(false, true)
