@@ -192,3 +192,84 @@ describe("ui.common.wrap_teach_text", function()
     assert.same({ "x" }, c.wrap_teach_text("   x   ", 10))
   end)
 end)
+
+describe("ui.common.expand_keys", function()
+  it("splits a multi-char token into single keys", function()
+    assert.same({ "c", "i", "w" }, c.expand_keys({ "ciw" }))
+  end)
+
+  it("keeps <...> notation as one key", function()
+    assert.same({ "<Esc>" }, c.expand_keys({ "<Esc>" }))
+  end)
+
+  it("expands a mixed sequence", function()
+    assert.same({ "j", "$", "r", "5" }, c.expand_keys({ "j", "$", "r", "5" }))
+  end)
+
+  it("handles a token with text and a notation key", function()
+    assert.same({ "c", "i", "w", "x", "<Esc>" },
+      c.expand_keys({ "ciw", "x", "<Esc>" }))
+  end)
+
+  it("returns empty for empty input", function()
+    assert.same({}, c.expand_keys({}))
+    assert.same({}, c.expand_keys(nil))
+  end)
+end)
+
+describe("ui.common.pick_baseline", function()
+  it("returns the single path when there are no alternates", function()
+    local ctx = { optimal_keystrokes = { "j", "$", "r", "5" } }
+    local b = c.pick_baseline(ctx)
+    assert.same({ "j", "$", "r", "5" }, b.tokens)
+    assert.equals(4, b.expanded_count)
+  end)
+
+  it("picks the alternate with fewest expanded keys", function()
+    local ctx = {
+      optimal_keystrokes = { "j", "l", "l", "l", "r", "5" },  -- 6
+      optimal_keystrokes_alternates = { { "j", "$", "r", "5" } },  -- 4
+    }
+    local b = c.pick_baseline(ctx)
+    assert.same({ "j", "$", "r", "5" }, b.tokens)
+    assert.equals(4, b.expanded_count)
+  end)
+
+  it("counts multi-char tokens by expanded length", function()
+    local ctx = { optimal_keystrokes = { "ciw", "x", "<Esc>" } }  -- 3+1+1 = 5
+    local b = c.pick_baseline(ctx)
+    assert.equals(5, b.expanded_count)
+  end)
+
+  it("breaks ties in favor of the primary", function()
+    local ctx = {
+      optimal_keystrokes = { "a", "b" },
+      optimal_keystrokes_alternates = { { "c", "d" } },
+    }
+    assert.same({ "a", "b" }, c.pick_baseline(ctx).tokens)
+  end)
+
+  it("returns nil when there is no sequence", function()
+    assert.is_nil(c.pick_baseline({}))
+  end)
+end)
+
+describe("ui.common.wrap_keys", function()
+  it("keeps a short list on one line", function()
+    local out = c.wrap_keys({ "j", "$", "r", "5" }, 40)
+    assert.equals(1, #out)
+    assert.equals("    j $ r 5", out[1])
+  end)
+
+  it("wraps when over width", function()
+    local parts = {}
+    for _ = 1, 30 do parts[#parts + 1] = "l" end
+    local out = c.wrap_keys(parts, 20)
+    assert.is_true(#out > 1)
+    for _, ln in ipairs(out) do assert.is_true(#ln <= 20) end
+  end)
+
+  it("returns empty for empty input", function()
+    assert.same({}, c.wrap_keys({}, 40))
+  end)
+end)

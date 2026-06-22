@@ -86,7 +86,38 @@ function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_conti
     end
   end
 
-  if opts.room then
+  local diff = opts.run_stats
+  local log = diff and diff.keystroke_log
+  if log and #log > 0 and diff.optimal_tokens and diff.optimal_count then
+    add(b.sep)
+    -- "Your keys (N): ..." wrapped at optimal_inner.
+    local your_parts = {}
+    for _, k in ipairs(log) do your_parts[#your_parts + 1] = common.format_key(k) end
+    add(b.row(string.format("  Your keys (%d):", #log)), "VimmerTitle")
+    for _, ln in ipairs(common.wrap_keys(your_parts, optimal_inner)) do
+      add(b.row(ln), "VimmerCommand")
+    end
+    -- "Optimal (M): ..." token form.
+    local opt_parts = {}
+    for _, k in ipairs(diff.optimal_tokens) do
+      opt_parts[#opt_parts + 1] = common.format_key(k)
+    end
+    add(b.row(string.format("  Optimal (%d):", diff.optimal_count)), "VimmerTitle")
+    for _, ln in ipairs(common.wrap_keys(opt_parts, optimal_inner)) do
+      add(b.row(ln), "VimmerXP")
+    end
+    -- Delta + hint.
+    local over = #log - diff.optimal_count
+    if over > 0 then
+      add(b.row(string.format("  Delta: +%d keys over optimal", over)), "VimmerDamage")
+      local hint = diff.efficiency_hint
+        or string.format("%d keys over optimal — see sequence above", over)
+      add(b.row("  Hint: " .. hint), "VimmerXP")
+    else
+      add(b.row("  Matched the efficient path."), "VimmerCleared")
+    end
+  elseif opts.room then
+    -- Fallback: no key log available, show optimal only (no regression).
     add(b.sep)
     add(b.row("  Optimal sequence:"), "VimmerTitle")
     for _, ln in ipairs(common.build_optimal_lines(opts.room, optimal_inner)) do

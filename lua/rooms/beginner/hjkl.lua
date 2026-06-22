@@ -8,6 +8,7 @@ return {
   before_example = "local x = |1",
   after_example = "local x = |5",
   usage_tip = "Stay on home row. Never reach for arrow keys again.",
+  efficiency_hint = "Use $ to jump to line end instead of repeating l.",
   filetype = "lua",
   cursor_start = { row = 1, col = 1 },
   goal = "Change the `2` on line 2 to `5`.",

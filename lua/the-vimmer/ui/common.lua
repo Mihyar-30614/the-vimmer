@@ -24,6 +24,68 @@ function M.format_key(k)
   else return k end
 end
 
+-- Expand a list of optimal-keystroke tokens into single keys so they can be
+-- counted against the player's raw key log. A `<...>` chunk (e.g. "<Esc>")
+-- counts as one key; every other character counts as one key.
+-- "ciw" -> {"c","i","w"}; "<Esc>" -> {"<Esc>"}.
+function M.expand_keys(tokens)
+  local out = {}
+  for _, tok in ipairs(tokens or {}) do
+    local i, n = 1, #tok
+    while i <= n do
+      if tok:sub(i, i) == "<" then
+        local close = tok:find(">", i, true)
+        if close then
+          out[#out + 1] = tok:sub(i, close)
+          i = close + 1
+        else
+          out[#out + 1] = tok:sub(i, i)
+          i = i + 1
+        end
+      else
+        out[#out + 1] = tok:sub(i, i)
+        i = i + 1
+      end
+    end
+  end
+  return out
+end
+
+-- Choose the accepted key sequence with the fewest expanded keystrokes (the
+-- most efficient path) for a room or boss-phase context. Returns
+-- { tokens = <token list>, expanded_count = <int> } or nil if none exist.
+-- Ties resolve to the first sequence (primary path).
+function M.pick_baseline(ctx)
+  local seqs = require("the-vimmer.rooms").acceptable_key_sequences(ctx)
+  local best_tokens, best_count = nil, nil
+  for _, seq in ipairs(seqs) do
+    local count = #M.expand_keys(seq)
+    if best_count == nil or count < best_count then
+      best_tokens, best_count = seq, count
+    end
+  end
+  if not best_tokens then return nil end
+  return { tokens = best_tokens, expanded_count = best_count }
+end
+
+-- Wrap a list of already-formatted key strings into lines no wider than
+-- `inner_width`, indenting continuation lines by 4 spaces. Returns a line array.
+function M.wrap_keys(parts, inner_width)
+  local lines = {}
+  local line = "    "
+  for _, tok in ipairs(parts or {}) do
+    local sep = line == "    " and "" or " "
+    if #line + #sep + #tok > inner_width and line ~= "    " then
+      lines[#lines + 1] = line
+      line = "    " .. tok
+    else
+      line = line .. sep .. tok
+    end
+  end
+  if line ~= "    " then lines[#lines + 1] = line end
+  return lines
+end
+
 function M.mutator_summary_line(names)
   if not names or #names == 0 then return nil end
   local parts = {}

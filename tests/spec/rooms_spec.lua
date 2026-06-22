@@ -326,3 +326,41 @@ describe("rooms.phase_view", function()
     assert.same({ { "a" } }, v.optimal_keystrokes_alternates)
   end)
 end)
+
+describe("rooms.validate efficiency_hint", function()
+  local base = {
+    id = "hint_room", tier = "beginner", command = "w",
+    title = "Test", description = "Desc",
+    before_example = "|before", after_example = "after|",
+    usage_tip = "tip", start_text = "start", target_text = "target",
+    base_xp = 50, optimal_keystrokes = { "w" },
+  }
+
+  it("accepts a string efficiency_hint", function()
+    local r = {}; for k, v in pairs(base) do r[k] = v end
+    r.efficiency_hint = "use $ to jump to line end"
+    assert.is_true(rooms.validate(r))
+  end)
+
+  it("accepts a room without efficiency_hint", function()
+    assert.is_true(rooms.validate(base))
+  end)
+
+  it("rejects a non-string efficiency_hint", function()
+    local r = {}; for k, v in pairs(base) do r[k] = v end
+    r.efficiency_hint = 42
+    assert.is_false(rooms.validate(r))
+  end)
+end)
+
+describe("rooms.phase_view efficiency_hint", function()
+  it("surfaces efficiency_hint", function()
+    local v = rooms.phase_view({ efficiency_hint = "tip text" })
+    assert.equals("tip text", v.efficiency_hint)
+  end)
+
+  it("leaves efficiency_hint nil when unset", function()
+    local v = rooms.phase_view({})
+    assert.is_nil(v.efficiency_hint)
+  end)
+end)
