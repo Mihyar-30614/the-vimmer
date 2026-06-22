@@ -110,6 +110,7 @@ function M.phase_view(ctx)
     optimal_keystrokes = ctx.optimal_keystrokes,
     optimal_keystrokes_alternates = ctx.optimal_keystrokes_alternates,
     bo = ctx.bo,
+    wo = ctx.wo,
   }
 end
 
