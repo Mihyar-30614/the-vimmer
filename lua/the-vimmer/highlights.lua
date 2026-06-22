@@ -48,70 +48,22 @@ function M.build_diff_line(before_ex, after_ex, max_w)
   return { before_disp, "→  " .. after_disp }
 end
 
--- Highlight groups whose meaning depends on red/green; remap under colorblind mode.
-local PALETTE_DEFAULT = {
-  VimmerHP_high     = { fg = "#50fa7b" },
-  VimmerHP_mid      = { fg = "#ffb86c" },
-  VimmerHP_low      = { fg = "#ff5555" },
-  VimmerDamage      = { bg = "#5c1010", fg = "#ff8080" },
-  VimmerWin         = { bg = "#50fa7b", fg = "#282a36" },
-  VimmerDeath       = { bold = true, fg = "#ff5555" },
-  VimmerTimerOk     = { bold = true, fg = "#50fa7b" },
-  VimmerTimerDanger = { bold = true, fg = "#ff5555" },
-  VimmerXP          = { bold = true, fg = "#f1fa8c" },
-  VimmerCleared     = { fg = "#50fa7b" },
-}
-
--- Wong/Okabe deuteranopia-safe palette for the colorblind opt-in.
-local PALETTE_CB = {
-  VimmerHP_high     = { fg = "#56b4e9" },
-  VimmerHP_mid      = { fg = "#f0e442" },
-  VimmerHP_low      = { fg = "#e69f00" },
-  VimmerDamage      = { bg = "#3a2400", fg = "#e69f00" },
-  VimmerWin         = { bg = "#56b4e9", fg = "#282a36" },
-  VimmerDeath       = { bold = true, fg = "#d55e00" },
-  VimmerTimerOk     = { bold = true, fg = "#56b4e9" },
-  VimmerTimerDanger = { bold = true, fg = "#d55e00" },
-  VimmerXP          = { bold = true, fg = "#f0e442" },
-  VimmerCleared     = { fg = "#56b4e9" },
-}
-
-local function palette()
-  local ok, root = pcall(require, "the-vimmer")
-  if ok and root and root.config and root.config.colorblind then
-    return PALETTE_CB
-  end
-  return PALETTE_DEFAULT
-end
-
+-- Resolve the active theme + colorblind config and apply every Vimmer*
+-- highlight group. Color data lives in the-vimmer.themes; this only wires
+-- the user's config into it. Default config reproduces the original look.
 function M.setup()
-  local hl = vim.api.nvim_set_hl
-  local p = palette()
-  hl(0, "VimmerTitle",        { bold = true, fg = "#ffffff" })
-  hl(0, "VimmerTierBeginner", { bold = true, fg = "#8be9fd" })
-  hl(0, "VimmerTierWarrior",  { bold = true, fg = "#ffb86c" })
-  hl(0, "VimmerTierNinja",    { bold = true, fg = "#ff79c6" })
-  hl(0, "VimmerTierGrandmaster", { bold = true, fg = "#bd93f9" })
-  hl(0, "VimmerCleared",      p.VimmerCleared)
-  hl(0, "VimmerLocked",       { fg = "#6272a4" })
-  hl(0, "VimmerSelected",     { bold = true, reverse = true })
-  hl(0, "VimmerXP",           p.VimmerXP)
-  hl(0, "VimmerHP_high",      p.VimmerHP_high)
-  hl(0, "VimmerHP_mid",       p.VimmerHP_mid)
-  hl(0, "VimmerHP_low",       p.VimmerHP_low)
-  hl(0, "VimmerWin",          p.VimmerWin)
-  hl(0, "VimmerDeath",        p.VimmerDeath)
-  hl(0, "VimmerCommand",      { bold = true, fg = "#f1fa8c" })
-  hl(0, "VimmerExample",      { fg = "#8be9fd" })
-  hl(0, "VimmerTimerOk",      p.VimmerTimerOk)
-  hl(0, "VimmerTimerWarn",    { bold = true, fg = "#ffb86c" })
-  hl(0, "VimmerTimerDanger",  p.VimmerTimerDanger)
-  hl(0, "VimmerBoss",         { bold = true, fg = "#ff79c6" })
-  hl(0, "VimmerPhase",        { bold = true, bg = "#44475a", fg = "#ff79c6" })
-  hl(0, "VimmerDamage",       p.VimmerDamage)
-  hl(0, "VimmerCrit",         { bg = "#5c4a00", fg = "#ffd700" })
-  hl(0, "VimmerTeachTip",     { fg = "#bcc4ea" })
-  hl(0, "VimmerTeachFoot",    { fg = "#6272a4" })
+  local themes = require("the-vimmer.themes")
+  local cfg = {}
+  local ok, root = pcall(require, "the-vimmer")
+  if ok and root and type(root.config) == "table" then cfg = root.config end
+
+  local colors = themes.colors({
+    theme = cfg.theme,
+    colorblind = cfg.colorblind == true,
+  })
+  for group, spec in pairs(themes.build_groups(colors)) do
+    vim.api.nvim_set_hl(0, group, spec)
+  end
 end
 
 return M

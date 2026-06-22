@@ -39,6 +39,9 @@ Die (HP → 0): room restarts, streak resets.
   config = function()
     require("the-vimmer").setup({
       colorblind = false, -- set true for a deuteranopia-safe palette
+      theme = "dracula",  -- "dracula" (default) | "auto" (match your colorscheme)
+                          -- | a table of role->hex overrides, e.g.
+                          -- { xp = "#f1fa8c", boss = "#ff79c6", hp_low = "#ff5555" }
       -- Optional lifecycle hooks (payload tables documented below)
       hooks = {
         win = function(ev)
