@@ -39,6 +39,11 @@ local DRACULA = {
   crit_fg          = "#ffd700",
   teach_tip        = "#bcc4ea",
   teach_foot       = "#6272a4",
+  panel_bg         = "#383a59",
+  section          = "#bd93f9",
+  menu_sel_bg      = "#44475a",
+  menu_sel_fg      = "#f8f8f2",
+  badge            = "#ffb86c",
 }
 
 -- Wong/Okabe deuteranopia-safe overrides. Applied on top of any chosen theme,
@@ -156,7 +161,10 @@ function M.build_groups(c)
     VimmerTierGrandmaster = { bold = true, fg = c.tier_grandmaster },
     VimmerCleared         = { fg = c.cleared },
     VimmerLocked          = { fg = c.locked },
-    VimmerSelected        = { bold = true, reverse = true },
+    VimmerSelected        = { bold = true, bg = c.menu_sel_bg, fg = c.menu_sel_fg },
+    VimmerPanel           = { bold = true, bg = c.panel_bg, fg = c.title },
+    VimmerSection         = { bold = true, fg = c.section },
+    VimmerBadge           = { bold = true, fg = c.badge },
     VimmerXP              = { bold = true, fg = c.xp },
     VimmerHP_high         = { fg = c.hp_high },
     VimmerHP_mid          = { fg = c.hp_mid },

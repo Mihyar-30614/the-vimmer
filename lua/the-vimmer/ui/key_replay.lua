@@ -25,7 +25,7 @@ function M.open_key_replay(room, replay_opts)
     if group then hls[#hls + 1] = { group, #lines - 1, 0, -1 } end
   end
   add(b.top)
-  add(b.row("  Key replay (primary path)"), "VimmerTitle")
+  add(b.row(common.game_section("KEY REPLAY", width)), "VimmerSection")
   add(b.sep)
   if #keys == 0 then
     add(b.row("  (no scripted sequence)"), "VimmerLocked")
@@ -35,7 +35,7 @@ function M.open_key_replay(room, replay_opts)
     end
   end
   add(b.sep)
-  add(b.row("  <q> close"), "VimmerTeachFoot")
+  add(b.row(common.game_footer({ { "Q", "close" } })), "VimmerTeachFoot")
   add(b.bot)
 
   local buf, win = float.open_float(lines, width)

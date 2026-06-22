@@ -84,7 +84,9 @@ describe("themes.build_groups", function()
 
   it("includes the static reverse Selected group", function()
     local groups = themes.build_groups(themes.colors({}))
-    assert.is_true(groups.VimmerSelected.reverse)
+    assert.is_true(groups.VimmerSelected.bold)
+    assert.is_truthy(groups.VimmerSelected.bg)
+    assert.is_truthy(groups.VimmerSelected.fg)
   end)
 
   it("covers exactly the groups highlights.setup applied", function()
@@ -92,6 +94,7 @@ describe("themes.build_groups", function()
     local expected = {
       "VimmerTitle", "VimmerTierBeginner", "VimmerTierWarrior", "VimmerTierNinja",
       "VimmerTierGrandmaster", "VimmerCleared", "VimmerLocked", "VimmerSelected",
+      "VimmerPanel", "VimmerSection", "VimmerBadge",
       "VimmerXP", "VimmerHP_high", "VimmerHP_mid", "VimmerHP_low", "VimmerWin",
       "VimmerDeath", "VimmerCommand", "VimmerExample", "VimmerTimerOk",
       "VimmerTimerWarn", "VimmerTimerDanger", "VimmerBoss", "VimmerPhase",

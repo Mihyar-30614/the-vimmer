@@ -18,7 +18,7 @@ function M.open_death(room, on_retry, on_map, death_opts)
   end
 
   add(b.top)
-  add(b.row("        YOU DIED"), "VimmerDeath")
+  add(b.row(common.game_section("DEFEAT", width)), "VimmerDeath")
   add(b.sep)
   if death_opts.timed_out then
     add(b.row("  Time ran out"), "VimmerTimerDanger")
@@ -36,7 +36,9 @@ function M.open_death(room, on_retry, on_map, death_opts)
     add(b.row(ln), "VimmerCommand")
   end
   add(b.sep)
-  add(b.row("  <Enter> retry   <r> replay keys   <q> map"))
+  add(b.row(common.game_footer({
+    { "ENTER", "retry" }, { "R", "replay" }, { "Q", "map" },
+  })), "VimmerTeachFoot")
   add(b.bot)
 
   local buf, win = float.open_float(lines, width)

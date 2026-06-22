@@ -27,6 +27,9 @@ function M.open_teach(room, flow_opts_or_cb, maybe_cb)
   end
 
   add(b.top)
+  add(b.row(common.game_section(room.is_boss and "BOSS FIGHT" or "MISSION BRIEF", width)),
+    "VimmerSection")
+  add(b.sep)
   if room.is_boss then
     common.add_wrapped_prefixed(add, b.row, "  ⚔ BOSS: ", room.command:gsub("\n", " ↵ "), width, "VimmerBoss")
     common.add_wrapped_prefixed(add, b.row, "  ", room.description:gsub("\n", " ↵ "), width, "VimmerTitle")
@@ -89,7 +92,9 @@ function M.open_teach(room, flow_opts_or_cb, maybe_cb)
   end
 
   add(b.sep)
-  add(b.row("  <Enter> begin   <r> replay keys   <q> close"), "VimmerTeachFoot")
+  add(b.row(common.game_footer({
+    { "ENTER", "begin" }, { "R", "replay" }, { "Q", "close" },
+  })), "VimmerTeachFoot")
   add(b.bot)
 
   local buf, win = float.open_float(lines, width)

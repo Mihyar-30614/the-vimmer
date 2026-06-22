@@ -14,6 +14,125 @@ function M.pick_float_width(desired)
   return math.min(desired, max_w)
 end
 
+-- Truncate a string to max byte length, appending "..." when needed.
+function M.truncate(s, max_len)
+  s = s or ""
+  if #s <= max_len then return s end
+  if max_len <= 3 then return s:sub(1, max_len) end
+  return s:sub(1, max_len - 3) .. "..."
+end
+
+-- Fill a box row with left and right text separated by spaces.
+-- `indent` defaults to two spaces; total row width includes border columns.
+function M.spread_row(left, right, width, indent)
+  indent = indent or "  "
+  left = indent .. (left or "")
+  right = right or ""
+  local inner = width - 2
+  local gap = inner - vim.fn.strdisplaywidth(left) - vim.fn.strdisplaywidth(right)
+  if gap < 1 then gap = 1 end
+  return left .. string.rep(" ", gap) .. right
+end
+
+-- One-line map summary under the title bar.
+function M.map_stats_line(cleared, total, streak, width)
+  local parts = { string.format("%d/%d rooms cleared", cleared or 0, total or 0) }
+  if (streak or 0) > 0 then
+    parts[#parts + 1] = string.format("streak %d", streak)
+  end
+  return M.spread_row(table.concat(parts, " · "), "", width)
+end
+
+-- Tier header: name left, progress + mini bar + boss hint right.
+function M.map_tier_header(label, cleared, total, bar_len, boss_hint, width)
+  bar_len = bar_len or 8
+  local bar = M.tier_room_bar(cleared, total, bar_len)
+  local right = string.format("%d/%d  %s", cleared, total, bar)
+  if boss_hint and boss_hint ~= "" then right = right .. "  " .. boss_hint end
+  return M.spread_row(label, right, width)
+end
+
+function M.map_boss_hint(boss_room, boss_cleared, boss_unlocked, cleared_ct, total_ct)
+  if not boss_room then return "" end
+  if boss_cleared then return "boss ✓" end
+  if boss_unlocked then return "boss ready" end
+  local need = math.ceil(math.max(total_ct, 1) * 0.8)
+  return string.format("%d/%d → boss", cleared_ct, need)
+end
+
+-- Inner divider row (does not use the heavy ╠ sep).
+function M.map_divider(width, indent)
+  indent = indent or "  "
+  local dashes = math.max(4, width - 2 - vim.fn.strdisplaywidth(indent))
+  return indent .. string.rep("─", dashes)
+end
+
+function M.map_room_row(icon, title, title_max, indent)
+  indent = indent or "    "
+  return indent .. icon .. "  " .. M.truncate(title, title_max)
+end
+
+-- ── game chrome (shared HUD / menu styling) ────────────────────────────────
+
+function M.bar_fill(value, max, bar_len, fill, empty)
+  bar_len = bar_len or 8
+  fill = fill or "█"
+  empty = empty or "░"
+  local filled = 0
+  if max and max > 0 then
+    filled = math.floor((value or 0) / max * bar_len + 0.5)
+  end
+  filled = math.min(bar_len, math.max(0, filled))
+  return string.rep(fill, filled) .. string.rep(empty, bar_len - filled)
+end
+
+function M.bracket_bar(value, max, bar_len, fill, empty)
+  return "[" .. M.bar_fill(value, max, bar_len, fill, empty) .. "]"
+end
+
+function M.game_level(xp)
+  return math.floor((xp or 0) / 120) + 1
+end
+
+-- Centered section divider: ── ══ TITLE ══ ──
+function M.game_section(title, width, indent)
+  indent = indent or "  "
+  local decor = "══ " .. title .. " ══"
+  local inner = width - 2 - vim.fn.strdisplaywidth(indent)
+  local decor_w = vim.fn.strdisplaywidth(decor)
+  if decor_w >= inner then
+    return indent .. M.truncate(decor, inner)
+  end
+  local pad = inner - decor_w
+  local left = math.floor(pad / 2)
+  return indent .. string.rep("─", left) .. decor .. string.rep("─", pad - left)
+end
+
+function M.game_footer(bindings)
+  local parts = {}
+  for _, bind in ipairs(bindings or {}) do
+    parts[#parts + 1] = string.format("[%s] %s", bind[1], bind[2])
+  end
+  return "  " .. table.concat(parts, "  ")
+end
+
+-- Menu row with optional selection cursor (▶) and status icon.
+function M.game_menu_row(selected, icon, title, title_max, indent)
+  indent = indent or "  "
+  local cur = selected and "▶" or " "
+  return indent .. cur .. " " .. (icon or "·") .. "  " .. M.truncate(title or "", title_max)
+end
+
+function M.game_hud_row(width, xp, streak, cleared, total)
+  local lvl = M.game_level(xp)
+  local xp_bar = M.bracket_bar(xp, 1000, 10, "▓", "░")
+  local left = string.format("LV %02d   XP %s %d", lvl, xp_bar, xp or 0)
+  local parts = {}
+  if (streak or 0) > 0 then parts[#parts + 1] = string.format("🔥 x%d", streak) end
+  parts[#parts + 1] = string.format("%d/%d cleared", cleared or 0, total or 0)
+  return M.spread_row(left, table.concat(parts, "  ·  "), width)
+end
+
 function M.format_key(k)
   if k == "\27"           then return "<Esc>"
   elseif k == "\r"        then return "<CR>"
@@ -258,11 +377,7 @@ function M.make_border(width, style)
 end
 
 function M.tier_room_bar(cleared, total, bar_len)
-  bar_len = bar_len or 8
-  if total <= 0 then return string.rep("░", bar_len) end
-  local filled = math.floor(cleared * bar_len / total + 0.5)
-  filled = math.min(bar_len, math.max(0, filled))
-  return string.rep("█", filled) .. string.rep("░", bar_len - filled)
+  return M.bracket_bar(cleared, total, bar_len or 8, "█", "░")
 end
 
 function M.fmt_run_seconds(s)
@@ -293,9 +408,7 @@ function M.streak_milestone_phrase(streak_after_win)
 end
 
 function M.xp_bar(xp, bar_width)
-  local max_xp = 1000
-  local filled = math.min(math.floor((xp / max_xp) * bar_width), bar_width)
-  return string.rep("▓", filled) .. string.rep("░", bar_width - filled)
+  return M.bracket_bar(xp, 1000, bar_width, "▓", "░")
 end
 
 return M

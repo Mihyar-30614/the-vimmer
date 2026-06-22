@@ -22,11 +22,8 @@ function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_conti
   end
 
   add(b.top)
-  if is_boss then
-    add(b.row("  ⚔ BOSS CLEARED!"), "VimmerBoss")
-  else
-    add(b.row("  ROOM CLEARED!"), "VimmerWin")
-  end
+  add(b.row(common.game_section(is_boss and "BOSS VICTORY" or "VICTORY", width)),
+    is_boss and "VimmerBoss" or "VimmerWin")
   add(b.row(""))
   local burst_line_idx = #all_lines  -- 1-based; animated sparkle row
   if opts.first_clear then
@@ -40,14 +37,18 @@ function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_conti
     if ml then add(b.row(ml), "VimmerTimerWarn") end
   end
   add(b.sep)
-  local function xp_row(v) return b.row(string.format("  XP Earned:     +%d", v)) end
+  local function xp_row(v)
+    return b.row(string.format("  XP  +%-4d   %s", v,
+      common.bracket_bar(v, math.max(xp_earned, 1), 8, "▓", "░")))
+  end
   add(xp_row(xp_earned), "VimmerXP")
   local xp_line_idx = #all_lines  -- 1-based; counts up 0 -> xp_earned
   if opts.run_stats and opts.run_stats.flawless then
     add(b.row("  Flawless sequence — +15% XP baked in."), "VimmerCleared")
   end
-  add(b.row(string.format("  HP Remaining:  %d / 100", hp_remaining)), "VimmerTitle")
-  add(b.row(string.format("  Streak:        %d", streak)), "VimmerTierWarrior")
+  add(b.row(string.format("  HP  %s  %d/100",
+    common.bracket_bar(hp_remaining, 100, 10, "█", "░"), hp_remaining)), "VimmerTitle")
+  add(b.row(string.format("  STREAK  🔥 x%d", streak)), "VimmerTierWarrior")
   do
     local phrase = common.streak_milestone_phrase(streak)
     if phrase then add(b.row("  " .. phrase), "VimmerXP") end
@@ -152,9 +153,9 @@ function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_conti
   add(b.sep)
   local footer_line = #all_lines + 1
   if fast_clear and on_powerup then
-    add(b.row("  j/k choose   <Enter> pick"))
+    add(b.row(common.game_footer({ { "J/K", "choose" }, { "ENTER", "pick" } })))
   else
-    add(b.row("  <Enter> next room   <q> map"))
+    add(b.row(common.game_footer({ { "ENTER", "next" }, { "Q", "map" } })), "VimmerTeachFoot")
   end
   add(b.bot)
 
@@ -224,7 +225,7 @@ function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_conti
           on_powerup(pu_types[cur])
           api.nvim_buf_set_option(buf, "modifiable", true)
           api.nvim_buf_set_lines(buf, footer_line - 1, footer_line, false,
-            { b.row("  <Enter> next room   <q> map") })
+            { b.row(common.game_footer({ { "ENTER", "next" }, { "Q", "map" } })) })
           api.nvim_buf_set_option(buf, "modifiable", false)
           api.nvim_buf_clear_namespace(buf, sel_ns, 0, -1)
           vim.keymap.del("n", "j", { buffer = buf })
