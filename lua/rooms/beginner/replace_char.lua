@@ -8,6 +8,7 @@ return {
   before_example = "x = |9",
   after_example = "x = |0",
   usage_tip = "r replaces exactly one char and stays in normal mode. Faster than i + char + Esc for single fixes.",
+  efficiency_hint = "r<char> swaps one character without entering insert mode.",
   filetype = "lua",
   cursor_start = { row = 1, col = 1 },
   goal = "Fix three typos: `9` -> `0`, `q` -> `o`, `Z` -> `S`.",

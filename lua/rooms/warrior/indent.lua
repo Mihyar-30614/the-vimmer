@@ -6,6 +6,7 @@ return {
   title = "Indent: >>, <<",
   description = ">> indents the current line by one shiftwidth; << dedents.",
   usage_tip = "Repeat with . or use ranges: V}>  indents a paragraph.",
+  efficiency_hint = ">> indents a line; press . to repeat it on the next.",
   before_example = "if x then\nfoo()\nend|",
   after_example = "if x then\n  foo()\nend|",
   filetype = "lua",

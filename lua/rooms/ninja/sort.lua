@@ -6,6 +6,7 @@ return {
   title = "Sort Lines: :sort",
   description = "Sort lines in the buffer alphabetically (or numerically with n flag).",
   usage_tip = ":sort sorts whole file; visual+:sort sorts the selection. :sort! reverses. :sort u removes dupes.",
+  efficiency_hint = "Select lines and :sort orders them in one command.",
   before_example = "c\na\nb",
   after_example = "a\nb\nc",
   filetype = "lua",

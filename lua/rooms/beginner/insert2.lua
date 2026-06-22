@@ -8,6 +8,7 @@ return {
   before_example = "one|\ntwo",
   after_example = "items:|\none,\ntwo,\nthree",
   usage_tip = "A puts you at end of line in insert mode. o opens a new line below.",
+  efficiency_hint = "A appends at line end, o opens a line below; pick the right entry.",
   filetype = "text",
   cursor_start = { row = 1, col = 1 },
   time_limit = 75,

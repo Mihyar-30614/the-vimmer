@@ -6,6 +6,7 @@ return {
   title = "Visual Mode: v, V",
   description = "Select: characters (v), whole lines (V). Then apply an operator.",
   usage_tip = "v enters char-wise visual. V is line-wise. Extend with motion keys, then d/c/y.",
+  efficiency_hint = "V selects whole lines, then one d deletes them all.",
   before_example = "keep\n|drop\ndrop\nkeep",
   after_example = "keep\n|keep",
   filetype = "lua",

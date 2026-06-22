@@ -6,6 +6,7 @@ return {
   title = "Search Under Cursor: * with cgn",
   description = "* searches forward for the word under cursor. cgn changes the next match. . repeats.",
   usage_tip = "* is faster than /word<CR>. cgn + . is the canonical rename pattern.",
+  efficiency_hint = "* searches the word under the cursor; cgn + . edits each.",
   before_example = "|TODO line 1\nTODO line 2",
   after_example = "|DONE line 1\nDONE line 2",
   filetype = "lua",

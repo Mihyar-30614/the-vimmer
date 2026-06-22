@@ -6,6 +6,7 @@ return {
   title = "File Motions: gg, G, {, }",
   description = "Jump to file start (gg), file end (G), prev blank-separated block ({), next (}).",
   usage_tip = "G goes to end of file instantly. { and } jump between paragraphs in prose or code.",
+  efficiency_hint = "{ and } jump by paragraph; gg/G reach the file ends.",
   before_example = "top\n\nmiddle\n\n|end",
   after_example = "TOP\n\nmiddle\n\nEND",
   filetype = "text",

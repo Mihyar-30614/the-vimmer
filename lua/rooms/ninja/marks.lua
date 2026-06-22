@@ -6,6 +6,7 @@ return {
   title = "Marks: Long-Range Jumps",
   description = "Set a mark with ma. Jump back to it with 'a (line) or `a (exact position).",
   usage_tip = "ma sets mark 'a' at cursor. `a jumps to that exact position from anywhere in the file.",
+  efficiency_hint = "Set a mark with ma, then leap back with `a anytime.",
   before_example = "...|line 2 mark...\n...\n...line 6 edit...",
   after_example = "(both lines edited)",
   filetype = "lua",

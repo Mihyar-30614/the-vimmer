@@ -6,6 +6,7 @@ return {
   title = "Change and Repeat",
   description = "cw changes a word. . repeats the last change at the cursor position.",
   usage_tip = "cw replaces from cursor to end of word. . repeats it on the next match.",
+  efficiency_hint = "cgn then . repeats your change at the next match.",
   before_example = "tmp_a = 1\ntmp_b = 2|",
   after_example = "final_a = 1\nfinal_b = 2|",
   filetype = "lua",

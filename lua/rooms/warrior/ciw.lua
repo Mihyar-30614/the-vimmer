@@ -8,6 +8,7 @@ return {
   before_example = "the |wrong word here",
   after_example = "the |right word here",
   usage_tip = "ciw works anywhere on the word. Pair with * to seed a search, then cgn + . to repeat the rename.",
+  efficiency_hint = "cgn + . repeats a change across matches hands-free.",
   filetype = "typescript",
   cursor_start = { row = 1, col = 20 },
   time_limit = 60,

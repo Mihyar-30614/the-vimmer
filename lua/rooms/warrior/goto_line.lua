@@ -6,6 +6,7 @@ return {
   title = "Goto Line: :N",
   description = "Type :NUMBER<CR> to jump to that line.",
   usage_tip = ":7<CR> is the same as 7G. Pairs naturally with line numbers in the gutter.",
+  efficiency_hint = "Jump to a line with :N or NG instead of scrolling.",
   before_example = "line 1\n|line 5",
   after_example = "line 1\n|LINE 5",
   filetype = "text",

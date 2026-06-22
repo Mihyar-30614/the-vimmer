@@ -6,6 +6,7 @@ return {
   title = "Named Register Workflow",
   description = "Yank into a named register with \"<reg>yy, paste with \"<reg>p.",
   usage_tip = '"ayy yanks into register a. "ap pastes from register a. Registers a-z are yours.',
+  efficiency_hint = "Stash lines in named registers, then paste them in any order.",
   before_example = "alpha|\nbeta",
   after_example = "beta|\nalpha",
   filetype = "lua",

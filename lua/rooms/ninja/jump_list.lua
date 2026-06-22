@@ -6,6 +6,7 @@ return {
   title = "Jump History: <C-o>, <C-i>",
   description = "<C-o> jumps to older position in the jump list; <C-i> jumps to newer.",
   usage_tip = "Like browser back/forward. <C-i> = Tab; the play tab maps Tab to freeze powerup, so use <C-i> in your real editor.",
+  efficiency_hint = "Ctrl-o jumps back where you were; Ctrl-i goes forward.",
   before_example = "header (cursor)\n...\nfooter line",
   after_example = "HEADER\n...\nFOOTER",
   filetype = "lua",

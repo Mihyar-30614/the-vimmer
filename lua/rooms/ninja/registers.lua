@@ -6,6 +6,7 @@ return {
   title = "Named Registers: \"ay, \"ap",
   description = "Yank into a named register (\"ay) and paste from it (\"ap).",
   usage_tip = '"ay yanks the line into register a. "ap pastes it anywhere. Registers a-z are yours.',
+  efficiency_hint = "Use named registers (a, b...) to hold several yanks at once.",
   before_example = "yank this|\n...\npaste here",
   after_example = "yank this\n...\nyank this|",
   filetype = "lua",

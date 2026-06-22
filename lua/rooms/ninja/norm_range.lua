@@ -6,6 +6,7 @@ return {
   title = "Apply Normal to Selection: :norm",
   description = "Run a normal-mode sequence on every line in a visual selection.",
   usage_tip = "V<motion> then :norm A;<CR> appends a char to many lines at once. The macro alternative for one-shot edits.",
+  efficiency_hint = "Select lines, then :norm <cmds> runs them on each.",
   before_example = "a = 1|\nb = 2",
   after_example = "a = 1;|\nb = 2;",
   filetype = "lua",

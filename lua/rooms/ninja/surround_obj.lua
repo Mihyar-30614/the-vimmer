@@ -6,6 +6,7 @@ return {
   title = "Text Object Deletion",
   description = "di<x> deletes inside delimiter. da<x> deletes including the delimiter itself.",
   usage_tip = "di\" deletes inside quotes leaving them. da\" deletes quotes too. ci\" changes inside.",
+  efficiency_hint = "Act inside or around pairs with di, da, ci plus the delimiter.",
   before_example = 'tag("old")|',
   after_example = 'tag("")|',
   filetype = "lua",

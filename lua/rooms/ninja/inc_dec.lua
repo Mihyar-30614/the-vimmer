@@ -6,6 +6,7 @@ return {
   title = "Increment / Decrement: <C-a>, <C-x>",
   description = "Bump the next number on or after the cursor up (<C-a>) or down (<C-x>).",
   usage_tip = "Prefix a count: 5<C-a> adds 5. Scans forward from cursor on current line.",
+  efficiency_hint = "Ctrl-a increments a number; prefix a count to add more.",
   before_example = "version = 1|",
   after_example = "version = 2|",
   filetype = "lua",

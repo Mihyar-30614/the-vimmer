@@ -8,6 +8,7 @@ return {
   before_example = "alpha\n|stale",
   after_example = "alpha\nalpha|",
   usage_tip = "dd on a line deletes it into the register. p pastes it after cursor line.",
+  efficiency_hint = "Use yy/dd on whole lines instead of selecting char by char.",
   filetype = "lua",
   cursor_start = { row = 1, col = 1 },
   time_limit = 45,

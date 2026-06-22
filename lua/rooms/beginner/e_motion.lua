@@ -8,6 +8,7 @@ return {
   before_example = "|foo bar baz",
   after_example = "foo bar baz|!",
   usage_tip = "Use e to land at the end of a word, e.g. before appending a char.",
+  efficiency_hint = "Use e to land on a word's end, then a to append after it.",
   filetype = "text",
   cursor_start = { row = 1, col = 1 },
   goal = "Land on the end of `baz` and append `!`.",

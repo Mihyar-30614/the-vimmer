@@ -8,6 +8,7 @@ return {
   before_example = "fix this line |now",
   after_example = "fix |This line now",
   usage_tip = "Jump backward word by word. Pair with w for fast navigation.",
+  efficiency_hint = "Press b to hop back whole words; don't h one char at a time.",
   filetype = "text",
   cursor_start = { row = 1, col = 31 },
   goal = "From the end, back up to `broken` and capitalize the `b`.",

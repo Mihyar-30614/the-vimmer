@@ -6,6 +6,7 @@ return {
   title = "Text Objects: di(, da[, ci{",
   description = "Operate on text inside or around delimiters without moving cursor first.",
   usage_tip = "i = inner (excludes delimiters), a = around (includes them). Works with d/c/y.",
+  efficiency_hint = "ci{ and da[ edit inside or around brackets without selecting.",
   before_example = "fn(|args)",
   after_example = "fn(|)",
   filetype = "lua",

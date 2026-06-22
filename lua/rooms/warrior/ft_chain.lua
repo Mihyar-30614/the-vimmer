@@ -6,6 +6,7 @@ return {
   title = "f/t Motion Chain",
   description = "; repeats the last f/t forward; , reverses it.",
   usage_tip = "ff finds next 'f'. ; jumps to the one after. , goes back.",
+  efficiency_hint = "Prefix f with a count (2f,) to reach the second match.",
   before_example = "a, b, |c, d",
   after_example = "a, b, |X, d",
   filetype = "lua",

@@ -6,6 +6,7 @@ return {
   title = "Black Hole Register: \"_",
   description = "Deleting with \"_ discards text without overwriting the unnamed yank register.",
   usage_tip = "\"_ is the black hole — anything deleted into it is gone. Use \"_dd to delete a line without losing what you yanked.",
+  efficiency_hint = "Delete to the black-hole register to discard without losing your yank.",
   before_example = "keep|\njunk\nkeep",
   after_example = "keep|\nkeep",
   filetype = "lua",

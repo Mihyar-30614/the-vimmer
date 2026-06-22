@@ -6,6 +6,7 @@ return {
   title = "Global Substitute",
   description = ":%s/pattern/replacement/g replaces all occurrences in the file.",
   usage_tip = "% means whole file. g flag means all occurrences per line. Omit g for first only.",
+  efficiency_hint = ":%s/old/new/g replaces every match in the file.",
   before_example = "hello world|",
   after_example = "goodbye world|",
   filetype = "lua",
