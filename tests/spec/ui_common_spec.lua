@@ -192,3 +192,27 @@ describe("ui.common.wrap_teach_text", function()
     assert.same({ "x" }, c.wrap_teach_text("   x   ", 10))
   end)
 end)
+
+describe("ui.common.expand_keys", function()
+  it("splits a multi-char token into single keys", function()
+    assert.same({ "c", "i", "w" }, c.expand_keys({ "ciw" }))
+  end)
+
+  it("keeps <...> notation as one key", function()
+    assert.same({ "<Esc>" }, c.expand_keys({ "<Esc>" }))
+  end)
+
+  it("expands a mixed sequence", function()
+    assert.same({ "j", "$", "r", "5" }, c.expand_keys({ "j", "$", "r", "5" }))
+  end)
+
+  it("handles a token with text and a notation key", function()
+    assert.same({ "c", "i", "w", "x", "<Esc>" },
+      c.expand_keys({ "ciw", "x", "<Esc>" }))
+  end)
+
+  it("returns empty for empty input", function()
+    assert.same({}, c.expand_keys({}))
+    assert.same({}, c.expand_keys(nil))
+  end)
+end)

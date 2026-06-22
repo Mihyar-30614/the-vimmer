@@ -24,6 +24,33 @@ function M.format_key(k)
   else return k end
 end
 
+-- Expand a list of optimal-keystroke tokens into single keys so they can be
+-- counted against the player's raw key log. A `<...>` chunk (e.g. "<Esc>")
+-- counts as one key; every other character counts as one key.
+-- "ciw" -> {"c","i","w"}; "<Esc>" -> {"<Esc>"}.
+function M.expand_keys(tokens)
+  local out = {}
+  for _, tok in ipairs(tokens or {}) do
+    local i, n = 1, #tok
+    while i <= n do
+      if tok:sub(i, i) == "<" then
+        local close = tok:find(">", i, true)
+        if close then
+          out[#out + 1] = tok:sub(i, close)
+          i = close + 1
+        else
+          out[#out + 1] = tok:sub(i, i)
+          i = i + 1
+        end
+      else
+        out[#out + 1] = tok:sub(i, i)
+        i = i + 1
+      end
+    end
+  end
+  return out
+end
+
 function M.mutator_summary_line(names)
   if not names or #names == 0 then return nil end
   local parts = {}
