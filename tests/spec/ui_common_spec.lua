@@ -216,3 +216,40 @@ describe("ui.common.expand_keys", function()
     assert.same({}, c.expand_keys(nil))
   end)
 end)
+
+describe("ui.common.pick_baseline", function()
+  it("returns the single path when there are no alternates", function()
+    local ctx = { optimal_keystrokes = { "j", "$", "r", "5" } }
+    local b = c.pick_baseline(ctx)
+    assert.same({ "j", "$", "r", "5" }, b.tokens)
+    assert.equals(4, b.expanded_count)
+  end)
+
+  it("picks the alternate with fewest expanded keys", function()
+    local ctx = {
+      optimal_keystrokes = { "j", "l", "l", "l", "r", "5" },  -- 6
+      optimal_keystrokes_alternates = { { "j", "$", "r", "5" } },  -- 4
+    }
+    local b = c.pick_baseline(ctx)
+    assert.same({ "j", "$", "r", "5" }, b.tokens)
+    assert.equals(4, b.expanded_count)
+  end)
+
+  it("counts multi-char tokens by expanded length", function()
+    local ctx = { optimal_keystrokes = { "ciw", "x", "<Esc>" } }  -- 3+1+1 = 5
+    local b = c.pick_baseline(ctx)
+    assert.equals(5, b.expanded_count)
+  end)
+
+  it("breaks ties in favor of the primary", function()
+    local ctx = {
+      optimal_keystrokes = { "a", "b" },
+      optimal_keystrokes_alternates = { { "c", "d" } },
+    }
+    assert.same({ "a", "b" }, c.pick_baseline(ctx).tokens)
+  end)
+
+  it("returns nil when there is no sequence", function()
+    assert.is_nil(c.pick_baseline({}))
+  end)
+end)

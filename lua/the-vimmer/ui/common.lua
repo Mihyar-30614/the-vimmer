@@ -51,6 +51,23 @@ function M.expand_keys(tokens)
   return out
 end
 
+-- Choose the accepted key sequence with the fewest expanded keystrokes (the
+-- most efficient path) for a room or boss-phase context. Returns
+-- { tokens = <token list>, expanded_count = <int> } or nil if none exist.
+-- Ties resolve to the first sequence (primary path).
+function M.pick_baseline(ctx)
+  local seqs = require("the-vimmer.rooms").acceptable_key_sequences(ctx)
+  local best_tokens, best_count = nil, nil
+  for _, seq in ipairs(seqs) do
+    local count = #M.expand_keys(seq)
+    if best_count == nil or count < best_count then
+      best_tokens, best_count = seq, count
+    end
+  end
+  if not best_tokens then return nil end
+  return { tokens = best_tokens, expanded_count = best_count }
+end
+
 function M.mutator_summary_line(names)
   if not names or #names == 0 then return nil end
   local parts = {}
