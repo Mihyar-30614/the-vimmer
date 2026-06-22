@@ -6,6 +6,7 @@ return {
   title = "Search and Repeat",
   description = "Search for a pattern, change next match (cgn), repeat with .",
   usage_tip = "/foo<CR> finds first match. cgn changes it. . repeats. n+. is the older form.",
+  efficiency_hint = "After cgn, press . to apply the change at each match.",
   before_example = "|foo\nfoo\nfoo",
   after_example = "|bar\nbar\nbar",
   filetype = "lua",

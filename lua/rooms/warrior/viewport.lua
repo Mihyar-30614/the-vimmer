@@ -6,6 +6,7 @@ return {
   title = "Viewport Jumps: H, M, L",
   description = "H = top of screen, M = middle, L = bottom.",
   usage_tip = "Jumps within the visible window — not the whole file. Quick when scrolling around.",
+  efficiency_hint = "H/M/L jump to the top, middle, and bottom of the screen.",
   before_example = "top|\nmid\nbot",
   after_example = "TOP|\nmid\nBOTTOM",
   filetype = "text",

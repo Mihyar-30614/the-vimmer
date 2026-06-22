@@ -6,6 +6,7 @@ return {
   title = "Find Char: f, t",
   description = "Jump to next occurrence of a char (f lands ON it, t lands BEFORE it).",
   usage_tip = "f: jumps to the colon. Use ; to repeat the jump forward, , to go back.",
+  efficiency_hint = "f<char> jumps straight to a character on the line.",
   before_example = "ok|, ok, ok, fail",
   after_example = "ok, ok, ok, |pass",
   filetype = "lua",

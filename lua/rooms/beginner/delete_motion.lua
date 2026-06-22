@@ -8,6 +8,7 @@ return {
   before_example = "fn(a, |unused, b)",
   after_example = "fn(a, |b)",
   usage_tip = "d + motion is the Vim grammar. dw = delete word, dW = delete WORD (no punctuation split), d$ = delete to end.",
+  efficiency_hint = "Combine d with a motion (dw) instead of deleting char by char.",
   filetype = "lua",
   cursor_start = { row = 1, col = 26 },
   goal = "Remove the unused `tmp,` parameter from the function signature.",

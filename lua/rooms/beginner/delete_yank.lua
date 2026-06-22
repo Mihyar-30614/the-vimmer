@@ -8,6 +8,7 @@ return {
   before_example = "a = 1\na = 1|\nb = 2",
   after_example = "a = 1|\nb = 2",
   usage_tip = "dd deletes the whole line into a register. Nothing is truly deleted in Vim.",
+  efficiency_hint = "Pick the smallest op: x for a char, dd for a whole line.",
   filetype = "lua",
   cursor_start = { row = 2, col = 1 },
   goal = "Delete the duplicated line 2, then remove the stray `;` at the end of line 1.",

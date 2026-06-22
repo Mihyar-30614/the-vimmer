@@ -8,6 +8,7 @@ return {
   before_example = "keep|\ndrop\ndrop\ndrop\nkeep",
   after_example = "keep|\nkeep",
   usage_tip = "4w jumps 4 words. 2dd deletes 2 lines. d$ deletes to end of line.",
+  efficiency_hint = "Prefix a count like 3dd to act on several lines at once.",
   filetype = "lua",
   cursor_start = { row = 2, col = 1 },
   time_limit = 40,

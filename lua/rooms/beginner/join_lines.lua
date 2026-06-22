@@ -8,6 +8,7 @@ return {
   before_example = "log(\n  msg)",
   after_example = "log( msg)|",
   usage_tip = "J is faster than going to end of line and deleting the newline. 3J joins 3 lines at once.",
+  efficiency_hint = "J joins lines; prefix a count (4J) to join several.",
   filetype = "lua",
   cursor_start = { row = 1, col = 1 },
   goal = "Join the wrapped `print` call onto one line.",

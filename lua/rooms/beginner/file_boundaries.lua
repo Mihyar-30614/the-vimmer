@@ -8,6 +8,7 @@ return {
   before_example = "-- header|",
   after_example = "-- header!|",
   usage_tip = "G = last line. 5G = line 5. gg = first line. Faster than counting j.",
+  efficiency_hint = "gg and G jump to file top and bottom instantly.",
   filetype = "lua",
   cursor_start = { row = 1, col = 1 },
   goal = "Delete the last line `TODO`, then append `!` to the first line.",

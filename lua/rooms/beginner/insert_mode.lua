@@ -8,6 +8,7 @@ return {
   before_example = "alpha = 1,|",
   after_example = "alpha = 1,\n  beta = 2,|",
   usage_tip = "i inserts BEFORE cursor. Move to the gap, press i, type, then <Esc>.",
+  efficiency_hint = "o opens a new line below in a single stroke.",
   filetype = "lua",
   cursor_start = { row = 2, col = 1 },
   goal = "Add a new line `  beta = 2,` after `alpha`.",

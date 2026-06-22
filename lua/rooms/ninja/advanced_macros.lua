@@ -6,6 +6,7 @@ return {
   title = "Advanced Macros",
   description = "Combine macros with text objects for powerful repeatable bulk edits.",
   usage_tip = "Record: qa ciw new <Esc> n q. Then @a repeats. The cgn+. pattern achieves the same without recording.",
+  efficiency_hint = "cgn + . (or a macro) repeats an edit across all matches.",
   before_example = "let foo|\nlet bar",
   after_example = "const foo|\nconst bar",
   filetype = "lua",

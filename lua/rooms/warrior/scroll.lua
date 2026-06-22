@@ -6,6 +6,7 @@ return {
   title = "Center View: zz, zt, zb",
   description = "zz centers cursor line; zt puts it at top; zb at bottom.",
   usage_tip = "Great after a big jump (G, /search, gg). zz feels like re-anchoring.",
+  efficiency_hint = "zz centers the cursor line; zt/zb pin it to top/bottom.",
   before_example = "...|line 8...",
   after_example = "...|FIXED...",
   filetype = "text",

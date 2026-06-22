@@ -6,6 +6,7 @@ return {
   title = "Search: /, n, N",
   description = "Search forward for a pattern (/), jump to next match (n), previous (N).",
   usage_tip = "/ followed by your search term then Enter. n hops to next match.",
+  efficiency_hint = "Search with /pattern, then n/N to jump between hits.",
   before_example = "tag = |bug\ntag = bug",
   after_example = "tag = |ok\ntag = ok",
   filetype = "lua",

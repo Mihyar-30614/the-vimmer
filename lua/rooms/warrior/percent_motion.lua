@@ -6,6 +6,7 @@ return {
   title = "Jump to Match: %",
   description = "Jump between matching bracket pairs: (), [], {}.",
   usage_tip = "% jumps to the matching bracket. Essential for navigating nested code.",
+  efficiency_hint = "% jumps between matching brackets instantly.",
   before_example = "wrap(|foo(x))",
   after_example = "foo(x)|",
   filetype = "lua",

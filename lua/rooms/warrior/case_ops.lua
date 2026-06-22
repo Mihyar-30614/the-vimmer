@@ -6,6 +6,7 @@ return {
   title = "Case Operators: gU, gu",
   description = "gU uppercases, gu lowercases. Combine with any motion or double for whole line: gUU / guu.",
   usage_tip = "guu = lowercase line, gUU = uppercase line. gUw = uppercase next word. g~ toggles case.",
+  efficiency_hint = "Use gU{motion} (gUw) to change case over a whole word.",
   before_example = "|select",
   after_example = "|SELECT",
   filetype = "sql",

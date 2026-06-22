@@ -8,6 +8,7 @@ return {
   before_example = 'log("old", a, b)|',
   after_example = 'log("new", x, y)|',
   usage_tip = 'ci" changes inside double quotes. ci( changes inside parens.',
+  efficiency_hint = "ci plus a delimiter changes text inside quotes or brackets fast.",
   filetype = "lua",
   cursor_start = { row = 2, col = 1 },
   time_limit = 90,

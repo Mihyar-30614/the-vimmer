@@ -6,6 +6,7 @@ return {
   title = "Delete To Char: dt, df",
   description = "dt<char> deletes up to (not including) a char. df<char> deletes up to and including it.",
   usage_tip = "dt) deletes everything before the close paren. ct) does the same but leaves you in insert mode.",
+  efficiency_hint = "dt<char> deletes up to a char; df<char> includes it.",
   before_example = "call(a, |b, junk)",
   after_example = "call(a, |b)",
   filetype = "lua",

@@ -8,6 +8,7 @@ return {
   before_example = "key = value|;",
   after_example = "key = value|",
   usage_tip = "0 hits raw start. ^ skips leading whitespace. $ jumps to last char.",
+  efficiency_hint = "$ jumps to line end and 0 to the start; no l/h crawling.",
   filetype = "lua",
   cursor_start = { row = 1, col = 1 },
   goal = "Delete the trailing `;` on each of the three lines.",

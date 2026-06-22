@@ -6,6 +6,7 @@ return {
   title = "Visual Block Insert",
   description = "<C-v> selects a vertical block. I inserts at every selected line simultaneously.",
   usage_tip = "<C-v> enters visual block. Select lines with j. I to insert. <Esc> applies to all.",
+  efficiency_hint = "Ctrl-v selects a column; I inserts on every line at once.",
   before_example = "a()\nb()\nc()|",
   after_example = "// a()\n// b()\n// c()|",
   filetype = "javascript",

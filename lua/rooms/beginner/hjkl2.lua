@@ -8,6 +8,7 @@ return {
   before_example = "line 1 |TODO",
   after_example = "line 1 |DONE",
   usage_tip = "3j moves 3 lines down. 5l moves 5 chars right. No arrow keys.",
+  efficiency_hint = "Prefix a count (10j) instead of pressing j ten times.",
   filetype = "lua",
   cursor_start = { row = 1, col = 1 },
   goal = "Change the `0` on line 5 to `9`.",

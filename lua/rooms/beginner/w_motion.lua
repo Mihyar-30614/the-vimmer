@@ -8,6 +8,7 @@ return {
   before_example = "the quick |brown fox",
   after_example = "the quick |brawn fox",
   usage_tip = "Jump word by word forward. Faster than holding l.",
+  efficiency_hint = "w jumps to the next word start instead of l-spamming.",
   filetype = "text",
   cursor_start = { row = 1, col = 1 },
   goal = "Hop to `brown` and change the `o` to `a`.",

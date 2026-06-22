@@ -8,6 +8,7 @@ return {
   before_example = "the |old fox the |old dog",
   after_example = "the |new fox the |new dog",
   usage_tip = "w hops forward one word. 2w hops two words. b reverses.",
+  efficiency_hint = "Hop by words with w/b/e instead of single-char motions.",
   filetype = "text",
   cursor_start = { row = 1, col = 1 },
   time_limit = 55,

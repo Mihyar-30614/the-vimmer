@@ -6,6 +6,7 @@ return {
   title = "Change Next Match: cgn + .",
   description = "cgn changes the next search match. Combine with . to repeat across every occurrence — no :s needed.",
   usage_tip = "cgn = c + gn (gn selects next match). After cgn + <word> + Esc, dot repeats the whole operation on the next match.",
+  efficiency_hint = "cgn changes the next match; . repeats it down the file.",
   before_example = "foo|\nfoo\nfoo",
   after_example = "bar|\nbar\nbar",
   filetype = "typescript",

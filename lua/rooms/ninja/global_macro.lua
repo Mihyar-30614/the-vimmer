@@ -7,6 +7,7 @@ return {
   title = "Macro at Scale",
   description = "Record a macro into register a, then apply it to many lines with N@a.",
   usage_tip = "qa starts recording into 'a'. Do your edit. q stops. 7@a replays 7 times. Or use :'<,'>norm for a one-shot equivalent.",
+  efficiency_hint = ":%norm <cmds> applies a command to every line.",
   before_example = "a = 1|\nb = 2",
   after_example = "a = 1;|\nb = 2;",
   filetype = "lua",

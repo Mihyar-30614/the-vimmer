@@ -6,6 +6,7 @@ return {
   title = "Global Command: :g/pattern/d",
   description = "Execute an ex command on every line matching a pattern. :g/#/d deletes all lines containing #.",
   usage_tip = ":g/pat/d = delete matching lines. :g/pat/normal <cmd> runs any normal command. :v/pat/d keeps only matching lines.",
+  efficiency_hint = ":g/pattern/d deletes every matching line at once.",
   before_example = "real\nDEBUG\nreal\nDEBUG",
   after_example = "real\nreal",
   filetype = "lua",

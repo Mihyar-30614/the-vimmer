@@ -8,6 +8,7 @@ return {
   before_example = "x = 1 |-- TODO",
   after_example = "x = 1|",
   usage_tip = "D = d$. Combine $ with any operator: d$ deletes, c$ changes, y$ yanks to end of line.",
+  efficiency_hint = "D deletes to end of line in one stroke; no repeated x.",
   filetype = "lua",
   cursor_start = { row = 1, col = 12 },
   goal = "Delete the `-- TODO` trailing comment on lines 1 and 2.",

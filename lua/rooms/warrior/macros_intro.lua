@@ -6,6 +6,7 @@ return {
   title = "Macros: q, @",
   description = "Record a macro into a register (qa), stop (q), replay (@a).",
   usage_tip = "qa records into register a. Do edits. q stops. @a replays. 2@a repeats twice.",
+  efficiency_hint = "Record once with qa...q, then replay with @a across lines.",
   before_example = "a = 1|\nb = 2\nc = 3",
   after_example = "a = 1;|\nb = 2;\nc = 3;",
   filetype = "lua",
