@@ -2,6 +2,7 @@ local M = {}
 local api = vim.api
 local common = require("the-vimmer.ui.common")
 local float  = require("the-vimmer.ui.float")
+local anim   = require("the-vimmer.ui.anim")
 
 function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_continue, opts)
   opts = opts or {}
@@ -26,6 +27,8 @@ function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_conti
   else
     add(b.row("  ROOM CLEARED!"), "VimmerWin")
   end
+  add(b.row(""))
+  local burst_line_idx = #all_lines  -- 1-based; animated sparkle row
   if opts.first_clear then
     add(b.row("  First clear — new muscle memory unlocked."), "VimmerCleared")
   end
@@ -37,7 +40,9 @@ function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_conti
     if ml then add(b.row(ml), "VimmerTimerWarn") end
   end
   add(b.sep)
-  add(b.row(string.format("  XP Earned:     +%d", xp_earned)), "VimmerXP")
+  local function xp_row(v) return b.row(string.format("  XP Earned:     +%d", v)) end
+  add(xp_row(xp_earned), "VimmerXP")
+  local xp_line_idx = #all_lines  -- 1-based; counts up 0 -> xp_earned
   if opts.run_stats and opts.run_stats.flawless then
     add(b.row("  Flawless sequence — +15% XP baked in."), "VimmerCleared")
   end
@@ -162,13 +167,39 @@ function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_conti
   local function reveal_next()
     if not api.nvim_buf_is_valid(buf) then return end
     revealed = revealed + 1
+    -- The XP line is revealed at +0, then counts up to its real value.
+    local animate_xp = revealed == xp_line_idx and xp_earned > 0
+    local text = animate_xp and xp_row(0) or all_lines[revealed]
     api.nvim_buf_set_option(buf, "modifiable", true)
-    api.nvim_buf_set_lines(buf, revealed - 1, revealed, false, { all_lines[revealed] })
+    api.nvim_buf_set_lines(buf, revealed - 1, revealed, false, { text })
     api.nvim_buf_set_option(buf, "modifiable", false)
     for _, h in ipairs(hls) do
       if h[2] == revealed - 1 then
         api.nvim_buf_add_highlight(buf, 0, h[1], h[2], h[3], h[4])
       end
+    end
+    if animate_xp then
+      anim.count_up({
+        from = 0, to = xp_earned, duration_ms = 600, fps = 30,
+        on_value = function(v)
+          if not api.nvim_buf_is_valid(buf) then return end
+          api.nvim_buf_set_option(buf, "modifiable", true)
+          pcall(api.nvim_buf_set_lines, buf, xp_line_idx - 1, xp_line_idx, false, { xp_row(v) })
+          api.nvim_buf_set_option(buf, "modifiable", false)
+          api.nvim_buf_add_highlight(buf, 0, "VimmerXP", xp_line_idx - 1, 0, -1)
+        end,
+      })
+    end
+    if revealed == burst_line_idx then
+      local frames = anim.burst_frames(6, 20)
+      anim.play_frames(buf, burst_line_idx - 1, frames,
+        function(f) return b.row("  " .. f) end, 70,
+        function()
+          if not api.nvim_buf_is_valid(buf) then return end
+          api.nvim_buf_set_option(buf, "modifiable", true)
+          pcall(api.nvim_buf_set_lines, buf, burst_line_idx - 1, burst_line_idx, false, { b.row("") })
+          api.nvim_buf_set_option(buf, "modifiable", false)
+        end)
     end
     if revealed < #all_lines then
       vim.defer_fn(reveal_next, 80)

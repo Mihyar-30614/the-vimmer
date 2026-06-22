@@ -1,6 +1,7 @@
 local M = {}
 local api = vim.api
 local float = require("the-vimmer.ui.float")
+local anim = require("the-vimmer.ui.anim")
 
 -- Module-level play state. Only one play session can be active at a time.
 local _play_ns = nil
@@ -78,6 +79,9 @@ function M.open_play(room, game_state, on_win, on_death)
   local HUD_W = 24
   local _hud_ns = api.nvim_create_namespace("the-vimmer-hud")
   local hud_feedback_line = nil
+  -- HP shown in the HUD lags the real value so a hit drains the bar smoothly.
+  local display_hp = game_state.hp
+  local hp_anim = nil
 
   local target_buf = api.nvim_create_buf(false, true)
   api.nvim_buf_set_option(target_buf, "bufhidden", "wipe")
@@ -124,11 +128,10 @@ function M.open_play(room, game_state, on_win, on_death)
 
   local function update_hud()
     if not api.nvim_buf_is_valid(hud_buf) then return end
-    local hp_blocks = math.ceil(game_state.hp / 10)
-    local hp_bar = string.rep("█", hp_blocks) .. string.rep("░", 10 - hp_blocks)
-    local hp_grp = hl.hp_group(game_state.hp)
+    local hp_bar = anim.bar(display_hp, 100, 10, { round = "ceil" })
+    local hp_grp = hl.hp_group(display_hp)
 
-    local lines = { "", " HP", " " .. hp_bar, string.format(" %d / 100", game_state.hp), "" }
+    local lines = { "", " HP", " " .. hp_bar, string.format(" %d / 100", display_hp), "" }
     local hls = {
       { hp_grp, 2, 1, -1 },
       { hp_grp, 3, 1, -1 },
@@ -233,6 +236,7 @@ function M.open_play(room, game_state, on_win, on_death)
         return
       end
       local dead = game_state:tick_timer()
+      if dead then display_hp = game_state.hp end
       update_hud()
       if dead then
         if _timer_handle then _timer_handle:stop() end
@@ -290,13 +294,23 @@ function M.open_play(room, game_state, on_win, on_death)
       local hp_before = game_state.hp
       game_state:register_key(key)
       local lost_hp = game_state.hp < hp_before
-      update_hud()
 
       if lost_hp then
+        if hp_anim then hp_anim.cancel(); hp_anim = nil end
+        if game_state.hp <= 0 then
+          display_hp = game_state.hp
+        else
+          local from = display_hp
+          hp_anim = anim.count_up({
+            from = from, to = game_state.hp, duration_ms = 280, fps = 30,
+            on_value = function(v) display_hp = v; update_hud() end,
+          })
+        end
         hud_pulse_feedback(string.format(
           "-%d HP  (over budget)", hp_before - game_state.hp))
         float.flash(play_buf, "VimmerDamage", 80)
       end
+      update_hud()
 
       if game_state:is_dead() then
         vim.on_key(nil, ns)
