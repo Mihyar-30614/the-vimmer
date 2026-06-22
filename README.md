@@ -9,10 +9,11 @@ A room-based dungeon game that teaches Neovim shortcuts. Each room explains a co
 | Beginner | hjkl, w, b, e, insert mode, delete/yank, undo/redo |
 | Warrior | ciw/caw, f/t, search, %, visual mode, macros |
 | Ninja | text objects, file motions, named registers, advanced macros |
+| Grandmaster | substitute captures, & whole-match, :g/normal, :g/move, :t copy, :m move, :%! filter, range :norm, & repeat, folds |
 
 Each tier's boss unlocks once 80% of that tier's regular rooms are cleared.
 Beating a tier's boss unlocks the next tier (warrior after the beginner boss,
-ninja after the warrior boss).
+ninja after the warrior boss, grandmaster after the ninja boss).
 
 ## Gameplay
 

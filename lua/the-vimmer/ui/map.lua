@@ -28,10 +28,11 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
     beginner = "VimmerTierBeginner",
     warrior  = "VimmerTierWarrior",
     ninja    = "VimmerTierNinja",
+    grandmaster = "VimmerTierGrandmaster",
   }
-  local tier_labels = { beginner = "BEGINNER", warrior = "WARRIOR", ninja = "NINJA" }
-  local tier_prereq = { warrior = "complete boss first", ninja = "complete boss first" }
-  local tiers = { "beginner", "warrior", "ninja" }
+  local tier_labels = { beginner = "BEGINNER", warrior = "WARRIOR", ninja = "NINJA", grandmaster = "GRANDMASTER" }
+  local tier_prereq = { warrior = "complete boss first", ninja = "complete boss first", grandmaster = "complete boss first" }
+  local tiers = { "beginner", "warrior", "ninja", "grandmaster" }
 
   add(b.top)
   do

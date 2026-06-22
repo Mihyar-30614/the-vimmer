@@ -260,6 +260,13 @@ function M.open_play(room, game_state, on_win, on_death)
       end
     end
 
+    local wo = view.wo or room.wo
+    if type(wo) == "table" then
+      for k, v in pairs(wo) do
+        vim.wo[play_win][k] = v
+      end
+    end
+
     if view.filetype ~= "" then
       vim.bo[play_buf].filetype = view.filetype
       vim.bo[target_buf].filetype = view.filetype

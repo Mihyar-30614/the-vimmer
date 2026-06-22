@@ -127,7 +127,7 @@ function M.open_results(xp_earned, hp_remaining, streak, unlocked_tier, on_conti
 
   if unlocked_tier then
     local tier_name = unlocked_tier:lower()
-    local tier_grp = ({ warrior = "VimmerTierWarrior", ninja = "VimmerTierNinja" })[tier_name]
+    local tier_grp = ({ warrior = "VimmerTierWarrior", ninja = "VimmerTierNinja", grandmaster = "VimmerTierGrandmaster" })[tier_name]
       or "VimmerTierBeginner"
     add(b.sep)
     add(b.row("  NEW TIER UNLOCKED:"), "VimmerTitle")

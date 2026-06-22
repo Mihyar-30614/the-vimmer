@@ -5,7 +5,7 @@
 -- used by game.lua's sequence-state machine to match player input.
 local M = {}
 
-local TIERS = { "beginner", "warrior", "ninja" }
+local TIERS = { "beginner", "warrior", "ninja", "grandmaster" }
 
 -- Cache of validated rooms per tier; populated lazily by load_tier, reset via clear_cache.
 local _tier_cache = {}
@@ -110,6 +110,7 @@ function M.phase_view(ctx)
     optimal_keystrokes = ctx.optimal_keystrokes,
     optimal_keystrokes_alternates = ctx.optimal_keystrokes_alternates,
     bo = ctx.bo,
+    wo = ctx.wo,
   }
 end
 

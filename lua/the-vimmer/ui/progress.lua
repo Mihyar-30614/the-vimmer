@@ -21,14 +21,15 @@ function M.open_progress(progress_data, rooms_by_tier)
     if group then hls[#hls + 1] = { group, #lines - 1, 0, -1 } end
   end
 
-  local tiers = { "beginner", "warrior", "ninja" }
-  local tier_labels = { beginner = "BEGINNER", warrior = "WARRIOR", ninja = "NINJA" }
+  local tiers = { "beginner", "warrior", "ninja", "grandmaster" }
+  local tier_labels = { beginner = "BEGINNER", warrior = "WARRIOR", ninja = "NINJA", grandmaster = "GRANDMASTER" }
   local tier_colors = {
     beginner = "VimmerTierBeginner",
     warrior = "VimmerTierWarrior",
     ninja = "VimmerTierNinja",
+    grandmaster = "VimmerTierGrandmaster",
   }
-  local tier_prereq = { warrior = "beat beginner boss", ninja = "beat warrior boss" }
+  local tier_prereq = { warrior = "beat beginner boss", ninja = "beat warrior boss", grandmaster = "beat ninja boss" }
 
   add(b.top)
   add(b.row("  THE VIMMER — PROGRESS"), "VimmerTitle")

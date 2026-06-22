@@ -364,3 +364,29 @@ describe("rooms.phase_view efficiency_hint", function()
     assert.is_nil(v.efficiency_hint)
   end)
 end)
+
+describe("rooms.phase_view wo", function()
+  it("surfaces a wo table", function()
+    local v = rooms.phase_view({ wo = { foldmethod = "indent" } })
+    assert.same({ foldmethod = "indent" }, v.wo)
+  end)
+
+  it("leaves wo nil when unset", function()
+    assert.is_nil(rooms.phase_view({}).wo)
+  end)
+end)
+
+describe("rooms.load_tier grandmaster", function()
+  it("loads 10 rooms plus the boss and all validate", function()
+    local list = rooms.load_tier("grandmaster")
+    assert.equals(11, #list)
+    local bosses, hinted = 0, 0
+    for _, r in ipairs(list) do
+      assert.is_true(rooms.validate(r))
+      if r.is_boss then bosses = bosses + 1
+      elseif r.efficiency_hint then hinted = hinted + 1 end
+    end
+    assert.equals(1, bosses)
+    assert.equals(10, hinted)
+  end)
+end)
