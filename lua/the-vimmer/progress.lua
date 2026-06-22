@@ -90,9 +90,7 @@ function M.weakest_regular_room_id(prog, rooms_by_tier)
   local worst_id, worst_waste = nil, -1
   for _, tier in ipairs(tiers) do
     local list = rooms_by_tier[tier] or {}
-    local prereq_tier = ({ warrior = "beginner", ninja = "warrior" })[tier]
-    local total_prereq = prereq_tier and #(rooms_by_tier[prereq_tier] or {}) or 0
-    if M.is_tier_unlocked(tier, prog.cleared, total_prereq) then
+    if M.is_tier_unlocked(tier, prog.cleared) then
       for _, r in ipairs(list) do
         if not r.is_boss then
           local st = prog.room_stats and prog.room_stats[r.id]
@@ -124,7 +122,7 @@ function M.calculate_xp(base_xp, remaining_hp, streak, efficiency_mult, double_x
 end
 
 -- Beginner is always unlocked; warrior/ninja unlock after clearing the previous tier's boss.
-function M.is_tier_unlocked(tier, cleared, total_in_tier)
+function M.is_tier_unlocked(tier, cleared)
   if tier == "beginner" then return true end
   local boss_id = (tier == "warrior") and "beginner_boss" or "warrior_boss"
   return cleared[boss_id] == true

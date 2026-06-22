@@ -29,9 +29,7 @@ function M.resolve_for_today(prog, rooms_by_tier)
   local pool = {}
   for _, tier in ipairs(rooms_mod.all_tiers()) do
     local list = rooms_by_tier[tier] or {}
-    local prereq_tier = ({ warrior = "beginner", ninja = "warrior" })[tier]
-    local total_prereq = prereq_tier and #(rooms_by_tier[prereq_tier] or {}) or 0
-    if progress.is_tier_unlocked(tier, prog.cleared, total_prereq) then
+    if progress.is_tier_unlocked(tier, prog.cleared) then
       for _, r in ipairs(list) do
         if not r.is_boss then pool[#pool + 1] = r end
       end

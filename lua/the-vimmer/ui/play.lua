@@ -7,6 +7,10 @@ local _play_ns = nil
 local _play_tab = nil
 local _timer_handle = nil
 
+-- Shared full-buffer flash sequences (group, duration_ms per step).
+local WIN_FLASH = { { "VimmerWin", 150 }, { "VimmerCrit", 150 }, { "VimmerWin", 150 } }
+local DEATH_FLASH = { { "VimmerDamage", 200 }, { nil, 100 }, { "VimmerDeath", 200 } }
+
 local function show_phase_banner(win, phase_num, callback)
   local label = string.format("  ── PHASE %d ──  ", phase_num)
   local buf = api.nvim_create_buf(false, true)
@@ -176,13 +180,18 @@ function M.open_play(room, game_state, on_win, on_death)
     lines[#lines+1] = " " .. string.rep("─", HUD_W - 2)
     lines[#lines+1] = ""
 
-    local cmd = " " .. room.command
+    -- Append `text` (with a leading space) to the HUD, wrapping at the panel width.
     local max_w = HUD_W - 1
-    while #cmd > max_w do
-      lines[#lines+1] = cmd:sub(1, max_w)
-      cmd = " " .. cmd:sub(max_w + 1)
+    local function append_wrapped(text)
+      local rest = " " .. text
+      while #rest > max_w do
+        lines[#lines+1] = rest:sub(1, max_w)
+        rest = " " .. rest:sub(max_w + 1)
+      end
+      lines[#lines+1] = rest
     end
-    lines[#lines+1] = cmd
+
+    append_wrapped(room.command)
 
     local rooms_mod = require("the-vimmer.rooms")
     local current_phase = room.is_boss and (room.phases[game_state.boss_phase] or {}) or room
@@ -191,12 +200,7 @@ function M.open_play(room, game_state, on_win, on_death)
       lines[#lines+1] = ""
       lines[#lines+1] = " GOAL:"
       hls[#hls+1] = { "VimmerXP", #lines - 1, 1, -1 }
-      local g = " " .. goal_view
-      while #g > max_w do
-        lines[#lines+1] = g:sub(1, max_w)
-        g = " " .. g:sub(max_w + 1)
-      end
-      lines[#lines+1] = g
+      append_wrapped(goal_view)
     end
 
     api.nvim_buf_set_option(hud_buf, "modifiable", true)
@@ -233,9 +237,7 @@ function M.open_play(room, game_state, on_win, on_death)
       if dead then
         if _timer_handle then _timer_handle:stop() end
         vim.cmd("stopinsert")
-        float.multi_flash(play_buf, {
-          { "VimmerDamage", 200 }, { nil, 100 }, { "VimmerDeath", 200 }
-        }, on_death)
+        float.multi_flash(play_buf, DEATH_FLASH, on_death)
       end
     end))
   end
@@ -293,9 +295,7 @@ function M.open_play(room, game_state, on_win, on_death)
         vim.on_key(nil, ns)
         vim.cmd("stopinsert")
         vim.schedule(function()
-          float.multi_flash(play_buf, {
-            { "VimmerDamage", 200 }, { nil, 100 }, { "VimmerDeath", 200 }
-          }, on_death)
+          float.multi_flash(play_buf, DEATH_FLASH, on_death)
         end)
         return
       end
@@ -311,13 +311,9 @@ function M.open_play(room, game_state, on_win, on_death)
           vim.cmd("stopinsert")
           local is_last = not room.is_boss or game_state.boss_phase >= game_state.boss_total_phases
           if is_last then
-            float.multi_flash(play_buf, {
-              { "VimmerWin", 150 }, { "VimmerCrit", 150 }, { "VimmerWin", 150 }
-            }, on_win)
+            float.multi_flash(play_buf, WIN_FLASH, on_win)
           else
-            float.multi_flash(play_buf, {
-              { "VimmerWin", 150 }, { "VimmerCrit", 150 }, { "VimmerWin", 150 }
-            }, function()
+            float.multi_flash(play_buf, WIN_FLASH, function()
               game_state:advance_boss_phase()
               local next_phase = game_state.boss_phase
               show_phase_banner(play_win, next_phase, function()

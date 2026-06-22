@@ -26,8 +26,7 @@ end
 local function check_newly_unlocked(d, prog, rooms_by_tier)
   for _, tier in ipairs(d.rooms.all_tiers()) do
     if not (prog.unlocked_tiers or {})[tier] then
-      local total = #(rooms_by_tier[tier] or {})
-      if d.progress.is_tier_unlocked(tier, prog.cleared, total) then
+      if d.progress.is_tier_unlocked(tier, prog.cleared) then
         prog.unlocked_tiers = prog.unlocked_tiers or {}
         prog.unlocked_tiers[tier] = true
         return tier:sub(1, 1):upper() .. tier:sub(2) .. " tier"

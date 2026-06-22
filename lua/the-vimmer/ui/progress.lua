@@ -92,9 +92,7 @@ function M.open_progress(progress_data, rooms_by_tier)
       else tier_rooms[#tier_rooms + 1] = room end
     end
 
-    local prereq_tier = ({ warrior = "beginner", ninja = "warrior" })[tier]
-    local total_prereq = prereq_tier and #(rooms_by_tier[prereq_tier] or {}) or 0
-    local unlocked = progress.is_tier_unlocked(tier, progress_data.cleared, total_prereq)
+    local unlocked = progress.is_tier_unlocked(tier, progress_data.cleared)
 
     if not unlocked then
       add(b.row(string.format(

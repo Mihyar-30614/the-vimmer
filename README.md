@@ -10,7 +10,9 @@ A room-based dungeon game that teaches Neovim shortcuts. Each room explains a co
 | Warrior | ciw/caw, f/t, search, %, visual mode, macros |
 | Ninja | text objects, file motions, named registers, advanced macros |
 
-Warrior unlocks at 80% beginner cleared. Ninja unlocks at 80% warrior cleared.
+Each tier's boss unlocks once 80% of that tier's regular rooms are cleared.
+Beating a tier's boss unlocks the next tier (warrior after the beginner boss,
+ninja after the warrior boss).
 
 ## Gameplay
 

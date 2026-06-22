@@ -56,26 +56,26 @@ end)
 
 describe("progress.is_tier_unlocked (boss-gate system)", function()
   it("beginner is always unlocked", function()
-    assert.is_true(progress.is_tier_unlocked("beginner", {}, 10))
+    assert.is_true(progress.is_tier_unlocked("beginner", {}))
   end)
 
   it("warrior locked when beginner_boss not cleared", function()
     local cleared = {}
     for i = 1, 10 do cleared["beginner_" .. i] = true end
-    assert.is_false(progress.is_tier_unlocked("warrior", cleared, 10))
+    assert.is_false(progress.is_tier_unlocked("warrior", cleared))
   end)
 
   it("warrior unlocked when beginner_boss cleared", function()
-    assert.is_true(progress.is_tier_unlocked("warrior", { beginner_boss = true }, 10))
+    assert.is_true(progress.is_tier_unlocked("warrior", { beginner_boss = true }))
   end)
 
   it("ninja locked when warrior_boss not cleared", function()
-    assert.is_false(progress.is_tier_unlocked("ninja", { beginner_boss = true }, 6))
+    assert.is_false(progress.is_tier_unlocked("ninja", { beginner_boss = true }))
   end)
 
   it("ninja unlocked when warrior_boss cleared", function()
     local cleared = { beginner_boss = true, warrior_boss = true }
-    assert.is_true(progress.is_tier_unlocked("ninja", cleared, 6))
+    assert.is_true(progress.is_tier_unlocked("ninja", cleared))
   end)
 end)
 
