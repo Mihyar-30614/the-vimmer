@@ -97,11 +97,13 @@ function M.refresh_mutator_unlocks(prog)
   end
 end
 
--- Find the regular room with the worst keystroke-waste ratio across all unlocked tiers.
--- "Waste" = keystrokes_over_budget / keystrokes_used. Highest waste = weakest room.
-function M.weakest_regular_room_id(prog, rooms_by_tier)
+-- Return up to `n` regular room IDs across unlocked tiers, ordered by
+-- keystroke-waste ratio (keystrokes_over_budget / keystrokes_used) descending.
+-- Only rooms with attempts > 0 and keystrokes_used > 0 are eligible.
+-- Ties break by id ascending for determinism.
+function M.weakest_regular_room_ids(prog, rooms_by_tier, n)
   local tiers = require("the-vimmer.rooms").all_tiers()
-  local worst_id, worst_waste = nil, -1
+  local scored = {}
   for _, tier in ipairs(tiers) do
     local list = rooms_by_tier[tier] or {}
     if M.is_tier_unlocked(tier, prog.cleared) then
@@ -110,16 +112,27 @@ function M.weakest_regular_room_id(prog, rooms_by_tier)
           local st = prog.room_stats and prog.room_stats[r.id]
           if st and st.attempts > 0 and (st.keystrokes_used or 0) > 0 then
             local waste = (st.keystrokes_over_budget or 0) / st.keystrokes_used
-            if waste > worst_waste then
-              worst_waste = waste
-              worst_id = r.id
-            end
+            scored[#scored + 1] = { id = r.id, waste = waste }
           end
         end
       end
     end
   end
-  return worst_id
+  table.sort(scored, function(a, b)
+    if a.waste == b.waste then return a.id < b.id end
+    return a.waste > b.waste
+  end)
+  local ids = {}
+  local limit = math.min(n or #scored, #scored)
+  for i = 1, limit do
+    ids[i] = scored[i].id
+  end
+  return ids
+end
+
+-- Find the single regular room with the worst keystroke-waste ratio.
+function M.weakest_regular_room_id(prog, rooms_by_tier)
+  return M.weakest_regular_room_ids(prog, rooms_by_tier, 1)[1]
 end
 
 -- XP formula: base + HP bonus (up to +100%), +50% for streak >= 3,
