@@ -20,6 +20,7 @@ local function default_state()
     streak = 0,
     unlocked_tiers = { beginner = true },
     room_best = {},
+    room_best_keys = {},
     room_stats = {},
     unlocked_mutators = {},
     daily_stamp = "",
@@ -66,6 +67,19 @@ function M.record_clear_run(prog, room_id, game_state)
   if game_state.flawless_run then
     s.flawless_clears = s.flawless_clears + 1
   end
+end
+
+-- Record a best (minimum) keystroke count for a room. Returns true when this
+-- run set a new best (including the first recorded run). Lower is better.
+function M.record_best_keys(prog, room_id, keys)
+  if not keys or keys <= 0 then return false end
+  prog.room_best_keys = prog.room_best_keys or {}
+  local prev = prog.room_best_keys[room_id]
+  if prev == nil or keys < prev then
+    prog.room_best_keys[room_id] = keys
+    return true
+  end
+  return false
 end
 
 -- Increment death counter (HP → 0 or timer expired).
