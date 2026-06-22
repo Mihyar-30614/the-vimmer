@@ -57,11 +57,18 @@ local function validate_goal(g)
   return type(g) == "string"
 end
 
+-- Validate the optional efficiency_hint field: nil or string.
+local function validate_efficiency_hint(h)
+  if h == nil then return true end
+  return type(h) == "string"
+end
+
 -- Validate the optional schema additions shared by rooms and boss phases.
 local function validate_optional_additions(ctx)
   if not validate_filetype(ctx.filetype) then return false end
   if not validate_cursor_start(ctx.cursor_start) then return false end
   if not validate_goal(ctx.goal) then return false end
+  if not validate_efficiency_hint(ctx.efficiency_hint) then return false end
   return true
 end
 
@@ -97,6 +104,7 @@ function M.phase_view(ctx)
     filetype = ctx.filetype or "",
     cursor_start = ctx.cursor_start or { row = 1, col = 1 },
     goal = ctx.goal,
+    efficiency_hint = ctx.efficiency_hint,
     start_text = ctx.start_text,
     target_text = ctx.target_text,
     optimal_keystrokes = ctx.optimal_keystrokes,
