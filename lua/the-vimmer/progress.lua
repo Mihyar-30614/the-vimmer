@@ -151,7 +151,10 @@ end
 -- Beginner is always unlocked; warrior/ninja unlock after clearing the previous tier's boss.
 function M.is_tier_unlocked(tier, cleared)
   if tier == "beginner" then return true end
-  local boss_id = (tier == "warrior") and "beginner_boss" or "warrior_boss"
+  local boss_id =
+    (tier == "warrior") and "beginner_boss"
+    or (tier == "ninja") and "warrior_boss"
+    or "ninja_boss"
   return cleared[boss_id] == true
 end
 

@@ -19,7 +19,7 @@ package.path = root .. "/lua/?.lua;" .. root .. "/lua/?/init.lua;" .. package.pa
 local rooms = require("the-vimmer.rooms")
 local api = vim.api
 
-local TIERS = { "beginner", "warrior", "ninja" }
+local TIERS = { "beginner", "warrior", "ninja", "grandmaster" }
 
 -- Run one keystroke sequence against a freshly-prepared buffer.
 -- Returns (ok, actual_text).
