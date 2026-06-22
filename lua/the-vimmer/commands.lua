@@ -76,6 +76,7 @@ function M.start_flow(room, flow_opts)
       end
     end
 
+    d.progress.record_best_keys(prog, room.id, g.keystrokes_used)
     d.progress.record_clear_run(prog, room.id, g)
     d.progress.refresh_mutator_unlocks(prog)
 
@@ -170,6 +171,10 @@ function M.start_flow(room, flow_opts)
   end
 
   g:start_room(room)
+  flow_opts.pb = {
+    keys    = (not room.is_boss) and (prog.room_best_keys or {})[room.id] or nil,
+    seconds = (prog.room_best or {})[room.id],
+  }
   d.ui.open_teach(room, flow_opts, function()
     prog = d.progress.load()
     d.progress.record_attempt(prog, room.id)

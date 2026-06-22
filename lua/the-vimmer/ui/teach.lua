@@ -82,6 +82,12 @@ function M.open_teach(room, flow_opts_or_cb, maybe_cb)
     add(b.row(ms), "VimmerTimerWarn")
   end
 
+  local pb_line = common.pb_line(flow_opts.pb)
+  if pb_line then
+    add(b.sep)
+    add(b.row(pb_line), "VimmerXP")
+  end
+
   add(b.sep)
   add(b.row("  <Enter> begin   <r> replay keys   <q> close"), "VimmerTeachFoot")
   add(b.bot)
