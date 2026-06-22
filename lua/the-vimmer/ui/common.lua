@@ -129,7 +129,34 @@ function M.build_optimal_lines(room, inner_width)
   return result
 end
 
-function M.pad_row(content, width)
+-- Box-drawing glyph sets for floating panels. "sharp" is the original double-line
+-- look; "rounded" uses light arcs for a softer frame.
+M.BORDER = {
+  sharp = {
+    tl = "╔", tr = "╗", bl = "╚", br = "╝",
+    h = "═", ml = "╠", mr = "╣", v = "║",
+  },
+  rounded = {
+    tl = "╭", tr = "╮", bl = "╰", br = "╯",
+    h = "─", ml = "├", mr = "┤", v = "│",
+  },
+}
+
+function M.current_border_style()
+  local ok, root = pcall(require, "the-vimmer")
+  if ok and root and type(root.config) == "table" and root.config.border then
+    return root.config.border
+  end
+  return "sharp"
+end
+
+function M.border_glyphs(style)
+  style = style or M.current_border_style()
+  return M.BORDER[style] or M.BORDER.sharp
+end
+
+function M.pad_row(content, width, glyphs)
+  glyphs = glyphs or M.border_glyphs()
   -- Strip UTF-8 multi-byte sequences down to one byte each to estimate display width.
   -- Decimal escapes (not \xHH) so the patterns parse under plain Lua 5.1 as well as LuaJIT.
   local visible = content:gsub("[\194-\223][\128-\191]", "_")
@@ -137,7 +164,7 @@ function M.pad_row(content, width)
     :gsub("[\240-\247][\128-\191][\128-\191][\128-\191]", "_")
   local pad = width - 2 - #visible
   if pad < 0 then pad = 0 end
-  return "║" .. content .. string.rep(" ", pad) .. "║"
+  return glyphs.v .. content .. string.rep(" ", pad) .. glyphs.v
 end
 
 function M.wrap_teach_text(text, max_display_width)
@@ -219,12 +246,14 @@ function M.add_wrapped_prefixed(add, row, prefix, text, box_width, hl_group)
   end
 end
 
-function M.make_border(width)
+function M.make_border(width, style)
+  local g = M.border_glyphs(style)
+  local inner = string.rep(g.h, width - 2)
   return {
-    top = "╔" .. string.rep("═", width - 2) .. "╗",
-    sep = "╠" .. string.rep("═", width - 2) .. "╣",
-    bot = "╚" .. string.rep("═", width - 2) .. "╝",
-    row = function(content) return M.pad_row(content, width) end,
+    top = g.tl .. inner .. g.tr,
+    sep = g.ml .. inner .. g.mr,
+    bot = g.bl .. inner .. g.br,
+    row = function(content) return M.pad_row(content, width, g) end,
   }
 end
 

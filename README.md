@@ -42,6 +42,7 @@ Die (HP → 0): room restarts, streak resets.
       theme = "dracula",  -- "dracula" (default) | "auto" (match your colorscheme)
                           -- | a table of role->hex overrides, e.g.
                           -- { xp = "#f1fa8c", boss = "#ff79c6", hp_low = "#ff5555" }
+      border = "sharp",   -- "sharp" (default) | "rounded" (╭╮ arc corners on floats)
       -- Optional lifecycle hooks (payload tables documented below)
       hooks = {
         win = function(ev)
