@@ -273,3 +273,41 @@ describe("progress.load migrates legacy room_stats", function()
     os.remove(tmp)
   end)
 end)
+
+describe("progress.record_best_keys", function()
+  local prog
+  before_each(function() prog = progress.reset_data() end)
+
+  it("records the first run and returns true", function()
+    assert.is_true(progress.record_best_keys(prog, "r1", 10))
+    assert.equals(10, prog.room_best_keys.r1)
+  end)
+
+  it("overwrites with a lower count and returns true", function()
+    progress.record_best_keys(prog, "r1", 10)
+    assert.is_true(progress.record_best_keys(prog, "r1", 6))
+    assert.equals(6, prog.room_best_keys.r1)
+  end)
+
+  it("keeps the old best for an equal or higher count and returns false", function()
+    progress.record_best_keys(prog, "r1", 6)
+    assert.is_false(progress.record_best_keys(prog, "r1", 6))
+    assert.is_false(progress.record_best_keys(prog, "r1", 9))
+    assert.equals(6, prog.room_best_keys.r1)
+  end)
+
+  it("ignores non-positive counts and returns false", function()
+    assert.is_false(progress.record_best_keys(prog, "r1", 0))
+    assert.is_nil(prog.room_best_keys.r1)
+  end)
+
+  it("creates room_best_keys when missing", function()
+    prog.room_best_keys = nil
+    assert.is_true(progress.record_best_keys(prog, "r1", 4))
+    assert.equals(4, prog.room_best_keys.r1)
+  end)
+
+  it("default_state includes an empty room_best_keys", function()
+    assert.same({}, progress.reset_data().room_best_keys)
+  end)
+end)

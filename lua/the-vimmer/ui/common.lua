@@ -240,6 +240,21 @@ function M.fmt_run_seconds(s)
   return string.format("%.1fs", s)
 end
 
+-- Format a "  PB: N keys · M:SS" line from a pb table { keys, seconds }.
+-- Omits a missing side; returns nil when neither is present.
+function M.pb_line(pb)
+  if type(pb) ~= "table" then return nil end
+  local parts = {}
+  if pb.keys and pb.keys > 0 then
+    parts[#parts + 1] = string.format("%d keys", pb.keys)
+  end
+  if pb.seconds and pb.seconds > 0 then
+    parts[#parts + 1] = M.fmt_run_seconds(pb.seconds)
+  end
+  if #parts == 0 then return nil end
+  return "  PB: " .. table.concat(parts, " · ")
+end
+
 function M.streak_milestone_phrase(streak_after_win)
   if streak_after_win >= 20 then return "Dungeon legend — unreal streak." end
   if streak_after_win >= 10 then return "Double digits — you're flying." end
