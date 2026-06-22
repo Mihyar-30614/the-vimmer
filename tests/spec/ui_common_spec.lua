@@ -253,3 +253,23 @@ describe("ui.common.pick_baseline", function()
     assert.is_nil(c.pick_baseline({}))
   end)
 end)
+
+describe("ui.common.wrap_keys", function()
+  it("keeps a short list on one line", function()
+    local out = c.wrap_keys({ "j", "$", "r", "5" }, 40)
+    assert.equals(1, #out)
+    assert.equals("    j $ r 5", out[1])
+  end)
+
+  it("wraps when over width", function()
+    local parts = {}
+    for _ = 1, 30 do parts[#parts + 1] = "l" end
+    local out = c.wrap_keys(parts, 20)
+    assert.is_true(#out > 1)
+    for _, ln in ipairs(out) do assert.is_true(#ln <= 20) end
+  end)
+
+  it("returns empty for empty input", function()
+    assert.same({}, c.wrap_keys({}, 40))
+  end)
+end)

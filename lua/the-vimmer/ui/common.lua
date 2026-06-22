@@ -68,6 +68,24 @@ function M.pick_baseline(ctx)
   return { tokens = best_tokens, expanded_count = best_count }
 end
 
+-- Wrap a list of already-formatted key strings into lines no wider than
+-- `inner_width`, indenting continuation lines by 4 spaces. Returns a line array.
+function M.wrap_keys(parts, inner_width)
+  local lines = {}
+  local line = "    "
+  for _, tok in ipairs(parts or {}) do
+    local sep = line == "    " and "" or " "
+    if #line + #sep + #tok > inner_width and line ~= "    " then
+      lines[#lines + 1] = line
+      line = "    " .. tok
+    else
+      line = line .. sep .. tok
+    end
+  end
+  if line ~= "    " then lines[#lines + 1] = line end
+  return lines
+end
+
 function M.mutator_summary_line(names)
   if not names or #names == 0 then return nil end
   local parts = {}
