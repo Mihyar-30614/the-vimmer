@@ -94,6 +94,11 @@ function M.start_flow(room, flow_opts)
       daily = flow_opts.daily == true,
     })
 
+    local common = require("the-vimmer.ui.common")
+    local phase_ctx = room.is_boss and (room.phases[g.boss_phase] or room) or room
+    local baseline = common.pick_baseline(phase_ctx)
+    local phase_view = d.rooms.phase_view(phase_ctx)
+
     d.ui.open_results(g.last_xp, g.hp, g.streak, unlocked_msg,
       function(go_map)
         if go_map then
@@ -132,6 +137,10 @@ function M.start_flow(room, flow_opts)
           new_personal_best = new_pb,
           prev_best_seconds = (not new_pb and prev_best) or nil,
           beaten_seconds = (new_pb and prev_best) or nil,
+          keystroke_log   = g:keystroke_log_keys(),
+          optimal_tokens  = baseline and baseline.tokens or nil,
+          optimal_count   = baseline and baseline.expanded_count or nil,
+          efficiency_hint = phase_view.efficiency_hint,
         },
       })
   end
