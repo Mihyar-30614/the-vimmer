@@ -60,6 +60,130 @@ local function boss_hint_game(boss_room, boss_cleared, boss_unlocked, cleared_ct
   return string.format("%d/%d %s", cleared_ct, need, icons.get("boss"))
 end
 
+local FOLD_OPEN, FOLD_CLOSED = "▾", "▸"
+
+local function tier_fully_cleared(tier_rooms, boss_room, cleared)
+  if count_cleared(tier_rooms, cleared) < #tier_rooms then return false end
+  if boss_room and not cleared[boss_room.id] then return false end
+  return true
+end
+
+-- Pure: builds the full screen from fold state + progress. No buffer/window
+-- access so it can be unit-tested under the busted harness.
+local function build_view(folds, progress_data, rooms_by_tier, width)
+  local cleared = progress_data.cleared
+  local b = common.make_border(width)
+  local room_title_max = math.max(22, width - 18)
+  local boss_title_max = math.max(18, width - 22)
+  local lines, hls, nav = {}, {}, {}
+
+  local function add(content, group)
+    lines[#lines + 1] = content
+    if group then hls[#hls + 1] = { group, #lines - 1, 0, -1 } end
+  end
+
+  local cleared_total, room_total = global_room_counts(rooms_by_tier, cleared)
+
+  add(b.top)
+  add(common.spread_row(icons.get("hud") .. "  WORLD MAP  " .. icons.get("hud"),
+    string.format("LV %02d", common.game_level(progress_data.total_xp)), width),
+    "VimmerPanel")
+  add(b.row(common.game_hud_row(
+    width, progress_data.total_xp, progress_data.streak, cleared_total, room_total)),
+    "VimmerXP")
+  add(b.sep)
+
+  do
+    local rooms_mod = require("the-vimmer.rooms")
+    local weak_id = progress.weakest_regular_room_id(progress_data, rooms_by_tier)
+    local weak_room = weak_id and rooms_mod.get_room(weak_id)
+    if weak_room then
+      add(b.row(common.game_section("QUICK PLAY", width)), "VimmerSection")
+      add(b.row(common.game_menu_row(false, icons.get("star"), weak_room.title, room_title_max)),
+        "VimmerBadge")
+      nav[#nav + 1] = {
+        kind = "quick", line = #lines, room = weak_room,
+        icon = icons.get("star"), title = weak_room.title,
+        title_max = room_title_max, hl = "VimmerBadge",
+      }
+      add(b.sep)
+    end
+  end
+
+  for _, tier in ipairs(TIERS) do
+    local tier_rooms, boss_room = split_tier_rooms(rooms_by_tier[tier])
+    local unlocked = progress.is_tier_unlocked(tier, cleared)
+    local roman = TIER_ROMAN[tier]
+    local label = TIER_LABELS[tier]
+
+    if not unlocked then
+      add(b.row(common.game_section(
+        icons.get("lock") .. " " .. roman .. " · " .. label, width)), "VimmerLocked")
+      add(b.row(string.format("      %s", TIER_PREREQ[tier] or "locked")),
+        "VimmerTeachFoot")
+    else
+      local cleared_ct = count_cleared(tier_rooms, cleared)
+      local total_ct = #tier_rooms
+      local boss_cleared = boss_room and cleared[boss_room.id]
+      local boss_unlocked = boss_room and progress.is_boss_unlocked(
+        tier, cleared, total_ct)
+      local hint = boss_hint_game(
+        boss_room, boss_cleared, boss_unlocked, cleared_ct, total_ct)
+      local folded = folds[tier]
+      local marker = folded and FOLD_CLOSED or FOLD_OPEN
+
+      add(b.row(common.spread_row(
+        string.format("%s %s · %s", marker, roman, label),
+        common.tier_room_bar(cleared_ct, total_ct, 8) .. "  " .. hint, width)),
+        TIER_COLORS[tier])
+      nav[#nav + 1] = { kind = "tier", tier = tier, line = #lines }
+
+      if not folded then
+        for _, room in ipairs(tier_rooms) do
+          local icon = cleared[room.id] and icons.get("check") or icons.get("ready")
+          local hl = cleared[room.id] and "VimmerCleared" or nil
+          add(b.row(common.game_menu_row(false, icon, room.title, room_title_max)), hl)
+          nav[#nav + 1] = {
+            kind = "room", tier = tier, line = #lines, room = room,
+            icon = icon, title = room.title, title_max = room_title_max, hl = hl,
+          }
+        end
+
+        if boss_room then
+          local title = "BOSS · " .. boss_room.title
+          if boss_cleared then
+            add(b.row(common.game_menu_row(false, icons.get("check"), title, boss_title_max)),
+              "VimmerCleared")
+            nav[#nav + 1] = { kind = "room", tier = tier, line = #lines, room = boss_room,
+              icon = icons.get("check"), title = title, title_max = boss_title_max,
+              hl = "VimmerCleared" }
+          elseif boss_unlocked then
+            add(b.row(common.game_menu_row(false, icons.get("boss"), title, boss_title_max)),
+              "VimmerBoss")
+            nav[#nav + 1] = { kind = "room", tier = tier, line = #lines, room = boss_room,
+              icon = icons.get("boss"), title = title, title_max = boss_title_max,
+              hl = "VimmerBoss" }
+          else
+            add(b.row(common.game_menu_row(false, icons.get("lock"), title, boss_title_max)),
+              "VimmerLocked")
+          end
+        end
+      end
+    end
+  end
+
+  add(b.sep)
+  add(b.row(common.game_footer({
+    { "ENTER", "play" }, { "ZA", "fold" }, { "J/K", "move" }, { "Q", "quit" },
+  })), "VimmerTeachFoot")
+  add(b.bot)
+
+  return lines, hls, nav
+end
+
+M._build_view = build_view
+M._tier_fully_cleared = tier_fully_cleared
+
 function M.open_map(progress_data, rooms_by_tier, on_select)
   progress_data = progress_data or {}
   progress_data.total_xp = progress_data.total_xp or 0
