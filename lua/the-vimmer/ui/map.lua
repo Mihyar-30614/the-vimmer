@@ -192,119 +192,18 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
 
   local width = common.pick_float_width(float.FLOAT_MAP_W)
   local b = common.make_border(width)
-  local room_title_max = math.max(22, width - 18)
-  local boss_title_max = math.max(18, width - 22)
-  local lines = {}
-  local hls = {}
-  local selectable = {}
 
-  local function add(content, group)
-    lines[#lines + 1] = content
-    if group then hls[#hls + 1] = { group, #lines - 1, 0, -1 } end
-  end
-
-  local cleared_total, room_total = global_room_counts(
-    rooms_by_tier, progress_data.cleared)
-
-  add(b.top)
-  add(common.spread_row(icons.get("hud") .. "  WORLD MAP  " .. icons.get("hud"),
-    string.format("LV %02d", common.game_level(progress_data.total_xp)), width),
-    "VimmerPanel")
-  add(b.row(common.game_hud_row(
-    width, progress_data.total_xp, progress_data.streak, cleared_total, room_total)),
-    "VimmerXP")
-  add(b.sep)
-
-  do
-    local rooms_mod = require("the-vimmer.rooms")
-    local weak_id = progress.weakest_regular_room_id(progress_data, rooms_by_tier)
-    local weak_room = weak_id and rooms_mod.get_room(weak_id)
-    if weak_room then
-      add(b.row(common.game_section("QUICK PLAY", width)), "VimmerSection")
-      add(b.row(common.game_menu_row(false, icons.get("star"), weak_room.title, room_title_max)),
-        "VimmerBadge")
-      selectable[#selectable + 1] = {
-        line = #lines,
-        room = weak_room,
-        icon = icons.get("star"),
-        title = weak_room.title,
-        title_max = room_title_max,
-        hl = "VimmerBadge",
-      }
-      add(b.sep)
-    end
-  end
-
+  -- Session fold state: auto-fold fully-cleared unlocked tiers. Locked tiers
+  -- get no entry (not foldable).
+  local folds = {}
   for _, tier in ipairs(TIERS) do
-    local tier_rooms, boss_room = split_tier_rooms(rooms_by_tier[tier])
-    local unlocked = progress.is_tier_unlocked(tier, progress_data.cleared)
-    local roman = TIER_ROMAN[tier]
-    local label = TIER_LABELS[tier]
-
-    if not unlocked then
-      add(b.row(common.game_section(
-        icons.get("lock") .. " " .. roman .. " · " .. label, width)), "VimmerLocked")
-      add(b.row(string.format("      %s", TIER_PREREQ[tier] or "locked")),
-        "VimmerTeachFoot")
-    else
-      local cleared_ct = count_cleared(tier_rooms, progress_data.cleared)
-      local total_ct = #tier_rooms
-      local boss_cleared = boss_room and progress_data.cleared[boss_room.id]
-      local boss_unlocked = boss_room and progress.is_boss_unlocked(
-        tier, progress_data.cleared, total_ct)
-      local hint = boss_hint_game(
-        boss_room, boss_cleared, boss_unlocked, cleared_ct, total_ct)
-
-      add(b.row(common.spread_row(
-        string.format("── %s · %s ──", roman, label),
-        common.tier_room_bar(cleared_ct, total_ct, 8) .. "  " .. hint, width)),
-        TIER_COLORS[tier])
-
-      for _, room in ipairs(tier_rooms) do
-        if progress_data.cleared[room.id] then
-          add(b.row(common.game_menu_row(false, icons.get("check"), room.title, room_title_max)),
-            "VimmerCleared")
-        else
-          add(b.row(common.game_menu_row(false, icons.get("ready"), room.title, room_title_max)))
-          selectable[#selectable + 1] = {
-            line = #lines,
-            room = room,
-            icon = icons.get("ready"),
-            title = room.title,
-            title_max = room_title_max,
-          }
-        end
-      end
-
-      if boss_room then
-        if boss_cleared then
-          add(b.row(common.game_menu_row(false, icons.get("check"),
-            "BOSS · " .. boss_room.title, boss_title_max)), "VimmerCleared")
-        elseif boss_unlocked then
-          add(b.row(common.game_menu_row(false, icons.get("boss"),
-            "BOSS · " .. boss_room.title, boss_title_max)), "VimmerBoss")
-          selectable[#selectable + 1] = {
-            line = #lines,
-            room = boss_room,
-            icon = icons.get("boss"),
-            title = "BOSS · " .. boss_room.title,
-            title_max = boss_title_max,
-            hl = "VimmerBoss",
-          }
-        else
-          add(b.row(common.game_menu_row(false, icons.get("lock"),
-            "BOSS · " .. boss_room.title, boss_title_max)), "VimmerLocked")
-        end
-      end
+    if progress.is_tier_unlocked(tier, progress_data.cleared) then
+      local tr, br = split_tier_rooms(rooms_by_tier[tier])
+      folds[tier] = tier_fully_cleared(tr, br, progress_data.cleared)
     end
   end
 
-  add(b.sep)
-  add(b.row(common.game_footer({
-    { "ENTER", "play" }, { "J/K", "move" }, { "Q", "quit" },
-  })), "VimmerTeachFoot")
-  add(b.bot)
-
+  local lines, hls, nav = build_view(folds, progress_data, rooms_by_tier, width)
   local buf, win = float.open_float(lines, width)
   float.apply_hl(buf, hls)
 
@@ -324,16 +223,62 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
 
   local function update_selection()
     api.nvim_buf_clear_namespace(buf, _sel_ns, 0, -1)
-    if #selectable == 0 then return end
-    for i, sel in ipairs(selectable) do
-      write_menu_row(sel, i == cur_idx)
+    if #nav == 0 then return end
+    for _, item in ipairs(nav) do
+      if item.kind ~= "tier" then write_menu_row(item, false) end
     end
     float.apply_hl(buf, hls)
-    local sel = selectable[cur_idx]
+    local sel = nav[cur_idx]
     if sel then
+      if sel.kind ~= "tier" then write_menu_row(sel, true) end
       api.nvim_buf_add_highlight(buf, _sel_ns, "VimmerSelected", sel.line - 1, 0, -1)
       api.nvim_win_set_cursor(win, { sel.line, 0 })
     end
+  end
+
+  local function resize()
+    local height = #lines
+    local row = math.max(0, math.floor((vim.o.lines - height) / 2))
+    local col = math.max(0, math.floor((vim.o.columns - width) / 2))
+    api.nvim_win_set_config(win, {
+      relative = "editor", row = row, col = col, width = width, height = height,
+    })
+  end
+
+  -- Rebuild from current fold state; keep the cursor on target_tier's header
+  -- when given, otherwise clamp the existing index.
+  local function render(target_tier)
+    lines, hls, nav = build_view(folds, progress_data, rooms_by_tier, width)
+    local was = api.nvim_buf_get_option(buf, "modifiable")
+    api.nvim_buf_set_option(buf, "modifiable", true)
+    api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+    api.nvim_buf_set_option(buf, "modifiable", was)
+    resize()
+    if target_tier then
+      for i, item in ipairs(nav) do
+        if item.kind == "tier" and item.tier == target_tier then cur_idx = i break end
+      end
+    end
+    cur_idx = math.min(math.max(cur_idx, 1), math.max(#nav, 1))
+    update_selection()
+  end
+
+  local function current_tier()
+    local item = nav[cur_idx]
+    return item and item.tier or nil  -- tier/room carry .tier; quick has none
+  end
+
+  local function toggle_fold(tier)
+    if not tier or folds[tier] == nil then return end
+    folds[tier] = not folds[tier]
+    render(tier)
+  end
+
+  local function set_all_folds(value)
+    for _, t in ipairs(TIERS) do
+      if folds[t] ~= nil then folds[t] = value end
+    end
+    render(current_tier())
   end
 
   update_selection()
@@ -343,22 +288,29 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
   end
 
   map_key("j", function()
-    if #selectable == 0 then return end
-    cur_idx = math.min(cur_idx + 1, #selectable)
+    if #nav == 0 then return end
+    cur_idx = math.min(cur_idx + 1, #nav)
     update_selection()
   end)
 
   map_key("k", function()
-    if #selectable == 0 then return end
+    if #nav == 0 then return end
     cur_idx = math.max(cur_idx - 1, 1)
     update_selection()
   end)
 
+  map_key("za", function() toggle_fold(current_tier()) end)
+  map_key("zM", function() set_all_folds(true) end)
+  map_key("zR", function() set_all_folds(false) end)
+
   map_key("<CR>", function()
-    if #selectable == 0 then return end
-    if selectable[cur_idx] then
+    local item = nav[cur_idx]
+    if not item then return end
+    if item.kind == "tier" then
+      toggle_fold(item.tier)
+    else
       api.nvim_win_close(win, true)
-      on_select(selectable[cur_idx].room)
+      on_select(item.room)
     end
   end)
 
