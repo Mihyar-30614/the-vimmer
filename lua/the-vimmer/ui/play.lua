@@ -258,11 +258,17 @@ function M.open_play(room, game_state, on_win, on_death)
     local ns = api.nvim_create_namespace("the-vimmer-keys-" .. tostring(game_state.boss_phase))
     _play_ns = ns
 
-    vim.on_key(function(key)
+    vim.on_key(function(key, typed)
       if not api.nvim_win_is_valid(play_win) then
         vim.on_key(nil, ns); return
       end
       if api.nvim_get_current_win() ~= play_win then return end
+
+      -- `key` is post-mapping (a mapping can expand to many keys the user never
+      -- pressed); `typed` is the raw input. Record/score by `typed`. Empty
+      -- `typed` means the key came from a mapping/feedkeys, not the user — skip.
+      key = (typed ~= nil and typed ~= "") and typed or key
+      if typed == "" then return end
 
       local hp_before = game_state.hp
       game_state:register_key(key)
