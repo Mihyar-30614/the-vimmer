@@ -46,139 +46,144 @@ function M.start_flow(room, flow_opts)
   local prog = d.progress.load()
   local g = d.game.new()
   g.streak = prog.streak or 0
+  g.power_ups = flow_opts.power_ups or {}
 
   local rooms_by_tier = build_rooms_by_tier(d)
 
   local function show_map()
     prog = d.progress.load()
-    d.ui.open_map(prog, build_rooms_by_tier(d), M.start_flow)
+    d.ui.open_map(prog, build_rooms_by_tier(d), function(selected)
+      M.start_flow(selected, { power_ups = g.power_ups })
+    end)
   end
 
   local function on_win()
     d.ui._close_play()
     require("the-vimmer.ui.transition").run("victory", function()
-    local first_clear = prog.cleared[room.id] ~= true
-    g:complete_room()
+      local first_clear = prog.cleared[room.id] ~= true
+      g:complete_room()
 
-    local prev_best = (prog.room_best or {})[room.id]
-    prog.cleared[room.id] = true
-    prog.total_xp = (prog.total_xp or 0) + g.last_xp
-    g:dismiss_results()
-    prog.streak = g.streak
+      local prev_best = (prog.room_best or {})[room.id]
+      local prev_best_keys = (prog.room_best_keys or {})[room.id]
+      local previous_xp = prog.total_xp or 0
+      local unlocked_msg
+      local run_s = g.run_seconds
+      local new_pb = false
+      if not g.practice then
+        prog.cleared[room.id] = true
+        prog.total_xp = (prog.total_xp or 0) + g.last_xp
+        g:dismiss_results()
+        prog.streak = g.streak
 
-    local run_s = g.run_seconds
-    local new_pb = false
-    if run_s and run_s > 0 then
-      prog.room_best = prog.room_best or {}
-      if prev_best == nil or run_s < prev_best then
-        prog.room_best[room.id] = run_s
-        new_pb = true
+        if run_s and run_s > 0 then
+          prog.room_best = prog.room_best or {}
+          if prev_best == nil or run_s < prev_best then
+            prog.room_best[room.id] = run_s
+            new_pb = true
+          end
+        end
+
+        d.progress.record_best_keys(prog, room.id, g.keystrokes_used)
+        d.progress.record_clear_run(prog, room.id, g)
+        d.progress.refresh_mutator_unlocks(prog)
+
+        unlocked_msg = check_newly_unlocked(d, prog, rooms_by_tier)
+        d.progress.save(prog)
       end
-    end
+      local fast_clear = not g.practice and #g.power_ups < 2 and room.time_limit ~= nil
+        and g.timer_remaining ~= nil
+        and g.timer_remaining > room.time_limit * 0.5
 
-    d.progress.record_best_keys(prog, room.id, g.keystrokes_used)
-    d.progress.record_clear_run(prog, room.id, g)
-    d.progress.refresh_mutator_unlocks(prog)
-
-    local unlocked_msg = check_newly_unlocked(d, prog, rooms_by_tier)
-    d.progress.save(prog)
-
-    local fast_clear = room.time_limit ~= nil
-      and g.timer_remaining ~= nil
-      and g.timer_remaining > room.time_limit * 0.5
-
-    d.callbacks.emit("win", {
-      room_id = room.id,
-      xp = g.last_xp,
-      streak = prog.streak,
-      flawless = g.flawless_run,
-      daily = flow_opts.daily == true,
-    })
-
-    local common = require("the-vimmer.ui.common")
-    local phase_ctx = room.is_boss and (room.phases[g.boss_phase] or room) or room
-    local baseline = common.pick_baseline(phase_ctx)
-    local phase_view = d.rooms.phase_view(phase_ctx)
-
-    d.ui.open_results(g.last_xp, g.hp, g.streak, unlocked_msg,
-      function(go_map)
-        if go_map then
-          show_map()
-          return
-        end
-        if flow_opts.queue and flow_opts.queue_idx then
-          local nxt = flow_opts.queue[flow_opts.queue_idx + 1]
-          if nxt then
-            M.start_flow(nxt, { queue = flow_opts.queue, queue_idx = flow_opts.queue_idx + 1 })
-          else
-            show_map()
-          end
-          return
-        end
-        local tier_rooms = d.rooms.load_tier(room.tier)
-        local next_room = nil
-        for i, r in ipairs(tier_rooms) do
-          if r.id == room.id and tier_rooms[i + 1] then
-            next_room = tier_rooms[i + 1]
-            break
-          end
-        end
-        if next_room then
-          M.start_flow(next_room)
-        else
-          show_map()
-        end
-      end,
-      {
-        is_boss = room.is_boss,
-        fast_clear = fast_clear,
-        on_powerup = function(pu_type) g:grant_powerup(pu_type) end,
-        room = room,
-        first_clear = first_clear,
-        is_daily = flow_opts.daily == true,
-        active_mutators = flow_opts.mutators,
-        run_stats = {
-          keystrokes_used = g.keystrokes_used,
-          keystrokes_over_budget = g.keystrokes_over_budget,
-          keystrokes_budget = g.keystrokes_budget,
-          efficiency_mult = g.last_efficiency_mult,
-          seconds = run_s,
-          flawless = g.flawless_run,
-          new_personal_best = new_pb,
-          prev_best_seconds = (not new_pb and prev_best) or nil,
-          beaten_seconds = (new_pb and prev_best) or nil,
-          keystroke_log   = g:keystroke_log_keys(),
-          optimal_tokens  = baseline and baseline.tokens or nil,
-          optimal_count   = baseline and baseline.expanded_count or nil,
-          efficiency_hint = phase_view.efficiency_hint,
-        },
+      d.callbacks.emit("win", {
+        room_id = room.id,
+        xp = g.last_xp,
+        streak = prog.streak,
+        flawless = g.flawless_run,
+        daily = flow_opts.daily == true,
+        practice = g.practice,
       })
+
+      local common = require("the-vimmer.ui.common")
+      local phase_ctx = room.is_boss and (room.phases[g.boss_phase] or room) or room
+      local baseline = common.pick_baseline(phase_ctx)
+      local phase_view = d.rooms.phase_view(phase_ctx)
+
+      d.ui.open_results(g.last_xp, g.hp, g.streak, unlocked_msg,
+        function(go_map)
+          if go_map then
+            show_map()
+            return
+          end
+          if flow_opts.queue and flow_opts.queue_idx then
+            local nxt = flow_opts.queue[flow_opts.queue_idx + 1]
+            if nxt then
+              M.start_flow(nxt, { queue = flow_opts.queue, queue_idx = flow_opts.queue_idx + 1, power_ups = g.power_ups })
+            else
+              show_map()
+            end
+            return
+          end
+          if g.practice then M.start_flow(room, { practice = true }); return end
+          local next_room = require("the-vimmer.learning").next_room(prog, rooms_by_tier)
+          if next_room then M.start_flow(next_room, { power_ups = g.power_ups }) else show_map() end
+        end,
+        {
+          is_boss = room.is_boss,
+          practice = g.practice,
+          total_xp = prog.total_xp,
+          previous_xp = previous_xp,
+          prev_best_keys = prev_best_keys,
+          mastery_count = ((prog.room_stats or {})[room.id] or {}).flawless_clears or 0,
+          fast_clear = fast_clear,
+          on_powerup = function(pu_type) g:grant_powerup(pu_type) end,
+          room = room,
+          first_clear = first_clear,
+          is_daily = flow_opts.daily == true,
+          active_mutators = flow_opts.mutators,
+          run_stats = {
+            keystrokes_used = g.keystrokes_used,
+            keystrokes_over_budget = g.keystrokes_over_budget,
+            keystrokes_budget = g.keystrokes_budget,
+            efficiency_mult = g.last_efficiency_mult,
+            seconds = run_s,
+            flawless = g.flawless_run,
+            new_personal_best = new_pb,
+            prev_best_seconds = (not new_pb and prev_best) or nil,
+            beaten_seconds = (new_pb and prev_best) or nil,
+            keystroke_log   = g:keystroke_log_keys(),
+            optimal_tokens  = baseline and baseline.tokens or nil,
+            optimal_count   = baseline and baseline.expanded_count or nil,
+            efficiency_hint = phase_view.efficiency_hint,
+          },
+        })
     end)
   end
 
   local function on_death()
     d.ui._close_play()
     require("the-vimmer.ui.transition").run("defeat", function()
-    g:retry_room()
-    prog = d.progress.load()
-    prog.streak = 0
-    d.progress.record_death(prog, room.id)
-    d.progress.save(prog)
+      g:retry_room()
+      prog = d.progress.load()
+      prog.streak = 0
+      d.progress.record_death(prog, room.id)
+      d.progress.save(prog)
 
-    d.callbacks.emit("death", {
-      room_id = room.id,
-      timed_out = g.timer_death,
-      over_budget_count = g.keystrokes_over_budget,
-    })
-
-    d.ui.open_death(room,
-      function() M.start_flow(room, flow_opts) end,
-      show_map,
-      {
+      d.callbacks.emit("death", {
+        room_id = room.id,
         timed_out = g.timer_death,
         over_budget_count = g.keystrokes_over_budget,
-      }
-    )
+      })
+
+      d.ui.open_death(room,
+        function() M.start_flow(room, flow_opts) end,
+        show_map,
+        {
+          timed_out = g.timer_death,
+          over_budget_count = g.keystrokes_over_budget,
+          phase_index = g.boss_phase,
+          on_practice = function() M.start_flow(room, { practice = true }) end,
+        }
+      )
     end)
   end
 
@@ -187,13 +192,16 @@ function M.start_flow(room, flow_opts)
     keys    = (not room.is_boss) and (prog.room_best_keys or {})[room.id] or nil,
     seconds = (prog.room_best or {})[room.id],
   }
-  d.ui.open_teach(room, flow_opts, function()
+  d.ui.open_teach(room, flow_opts, function(practice)
+    flow_opts.practice = practice == true or flow_opts.practice == true
     prog = d.progress.load()
-    d.progress.record_attempt(prog, room.id)
-    d.progress.save(prog)
+    if not flow_opts.practice then
+      d.progress.record_attempt(prog, room.id)
+      d.progress.save(prog)
+    end
     g:set_mutators(flow_opts.mutators or {})
-    g:begin_play()
-    d.ui.open_play(room, g, on_win, on_death)
+    g:begin_play({ practice = flow_opts.practice })
+    d.ui.open_play(room, g, on_win, on_death, { on_leave = show_map })
   end)
 end
 
@@ -215,6 +223,14 @@ function M.register(opts)
       d.ui.open_map(prog, build_rooms_by_tier(d), M.start_flow)
     end
   end, { nargs = "?", desc = "Play the-vimmer (optional room id)" })
+
+  vim.api.nvim_create_user_command("VimmerPractice", function(cmd_opts)
+    local d = deps()
+    local room = cmd_opts.args ~= "" and d.rooms.get_room(cmd_opts.args)
+      or require("the-vimmer.learning").next_room(d.progress.load(), build_rooms_by_tier(d))
+    if not room then vim.notify("the-vimmer: choose a room with :VimmerPlay", vim.log.levels.INFO); return end
+    M.start_flow(room, { practice = true })
+  end, { nargs = "?", desc = "Practice without a timer, damage or ranked rewards" })
 
   vim.api.nvim_create_user_command("VimmerDaily", function()
     local d = deps()

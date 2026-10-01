@@ -4,6 +4,7 @@ local common = require("the-vimmer.ui.common")
 local float  = require("the-vimmer.ui.float")
 local progress = require("the-vimmer.progress")
 local icons = require("the-vimmer.ui.icons")
+local learning = require("the-vimmer.learning")
 
 local TIER_COLORS = {
   beginner    = "VimmerTierBeginner",
@@ -57,10 +58,10 @@ local function boss_hint_game(boss_room, boss_cleared, boss_unlocked, cleared_ct
   if boss_cleared then return icons.get("boss") .. " CLEARED" end
   if boss_unlocked then return icons.get("boss") .. " READY" end
   local need = math.ceil(math.max(total_ct, 1) * 0.8)
-  return string.format("%d/%d %s", cleared_ct, need, icons.get("boss"))
+  return string.format("%d more to boss", math.max(0, need - cleared_ct))
 end
 
-local FOLD_OPEN, FOLD_CLOSED = "▾", "▸"
+
 
 local function tier_fully_cleared(tier_rooms, boss_room, cleared)
   if count_cleared(tier_rooms, cleared) < #tier_rooms then return false end
@@ -71,7 +72,7 @@ end
 -- Pure: builds the full screen from fold state + progress. No buffer/window
 -- access so it can be unit-tested under the busted harness.
 local function build_view(folds, progress_data, rooms_by_tier, width)
-  local cleared = progress_data.cleared
+  local cleared = progress_data.cleared or {}
   local b = common.make_border(width)
   local room_title_max = math.max(22, width - 18)
   local boss_title_max = math.max(18, width - 22)
@@ -85,30 +86,35 @@ local function build_view(folds, progress_data, rooms_by_tier, width)
   local cleared_total, room_total = global_room_counts(rooms_by_tier, cleared)
 
   add(b.top)
-  add(common.spread_row(icons.get("hud") .. "  WORLD MAP  " .. icons.get("hud"),
-    string.format("LV %02d", common.game_level(progress_data.total_xp)), width),
+  add(b.row(common.spread_row(icons.get("hud") .. " WORLD MAP",
+    string.format("LV %02d", common.game_level(progress_data.total_xp)), width)),
     "VimmerPanel")
   add(b.row(common.game_hud_row(
     width, progress_data.total_xp, progress_data.streak, cleared_total, room_total)),
     "VimmerXP")
   add(b.sep)
 
-  do
-    local rooms_mod = require("the-vimmer.rooms")
-    local weak_id = progress.weakest_regular_room_id(progress_data, rooms_by_tier)
-    local weak_room = weak_id and rooms_mod.get_room(weak_id)
-    if weak_room then
-      add(b.row(common.game_section("QUICK PLAY", width)), "VimmerSection")
-      add(b.row(common.game_menu_row(false, icons.get("star"), weak_room.title, room_title_max)),
-        "VimmerBadge")
-      nav[#nav + 1] = {
-        kind = "quick", line = #lines, room = weak_room,
-        icon = icons.get("star"), title = weak_room.title,
-        title_max = room_title_max, hl = "VimmerBadge",
-      }
-      add(b.sep)
-    end
+  local next_room = learning.next_room(progress_data, rooms_by_tier)
+  local weak_id = progress.weakest_regular_room_id(progress_data, rooms_by_tier)
+  if not next_room and weak_id then next_room = require("the-vimmer.rooms").get_room(weak_id) end
+  if next_room then
+    add(b.row(common.game_section("CONTINUE TRAINING", width)), "VimmerSection")
+    add(b.row(common.game_menu_row(false, icons.get("star"), next_room.title, room_title_max)), "VimmerBadge")
+    nav[#nav + 1] = { kind = "quick", line = #lines, room = next_room,
+      icon = icons.get("star"), title = next_room.title, title_max = room_title_max, hl = "VimmerBadge" }
+    add(b.row("  " .. learning.group_for(next_room)), "VimmerTeachTip")
+    add(b.sep)
   end
+  -- Four nodes make the journey visible without introducing another menu.
+  local route = {}
+  for _, tier in ipairs(TIERS) do
+    local mark = cleared[tier .. "_boss"] and icons.get("check")
+      or (progress.is_tier_unlocked(tier, cleared) and icons.get("ready") or icons.get("lock"))
+    route[#route + 1] = mark .. " " .. TIER_ROMAN[tier]
+  end
+  add(b.row("  " .. table.concat(route, " -- ")), "VimmerSection")
+  add(b.row("  [A] Browse all / [D] drill weak skill"), "VimmerTeachFoot")
+  add(b.sep)
 
   for _, tier in ipairs(TIERS) do
     local tier_rooms, boss_room = split_tier_rooms(rooms_by_tier[tier])
@@ -130,7 +136,7 @@ local function build_view(folds, progress_data, rooms_by_tier, width)
       local hint = boss_hint_game(
         boss_room, boss_cleared, boss_unlocked, cleared_ct, total_ct)
       local folded = folds[tier]
-      local marker = folded and FOLD_CLOSED or FOLD_OPEN
+      local marker = folded and icons.get("fold_closed") or icons.get("fold_open")
 
       add(b.row(common.spread_row(
         string.format("%s %s · %s", marker, roman, label),
@@ -139,18 +145,25 @@ local function build_view(folds, progress_data, rooms_by_tier, width)
       nav[#nav + 1] = { kind = "tier", tier = tier, line = #lines }
 
       if not folded then
+        local last_group
         for _, room in ipairs(tier_rooms) do
+          local group = learning.group_for(room)
+          if group ~= last_group then add(b.row("    " .. group), "VimmerTeachTip"); last_group = group end
           local icon = cleared[room.id] and icons.get("check") or icons.get("ready")
           local hl = cleared[room.id] and "VimmerCleared" or nil
-          add(b.row(common.game_menu_row(false, icon, room.title, room_title_max)), hl)
+          local stats = (progress_data.room_stats or {})[room.id] or {}
+          local mastered = (stats.flawless_clears or 0) >= 3
+          if mastered then icon = icons.get("star"); hl = "VimmerBadge" end
+          local title = room.title .. (mastered and " [MASTERED]" or "")
+          add(b.row(common.game_menu_row(false, icon, title, room_title_max)), hl)
           nav[#nav + 1] = {
             kind = "room", tier = tier, line = #lines, room = room,
-            icon = icon, title = room.title, title_max = room_title_max, hl = hl,
+            icon = icon, title = title, title_max = room_title_max, hl = hl,
           }
         end
 
         if boss_room then
-          local title = "BOSS · " .. boss_room.title
+          local title = "BOSS · " .. common.clean_title(boss_room.title)
           if boss_cleared then
             add(b.row(common.game_menu_row(false, icons.get("check"), title, boss_title_max)),
               "VimmerCleared")
@@ -174,7 +187,7 @@ local function build_view(folds, progress_data, rooms_by_tier, width)
 
   add(b.sep)
   add(b.row(common.game_footer({
-    { "ENTER", "play" }, { "ZA", "fold" }, { "J/K", "move" }, { "Q", "quit" },
+    { "RET", "play" }, { "J/K", "move" }, { "Q", "quit" },
   })), "VimmerTeachFoot")
   add(b.bot)
 
@@ -193,18 +206,22 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
   local width = common.pick_float_width(float.FLOAT_MAP_W)
   local b = common.make_border(width)
 
-  -- Session fold state: auto-fold fully-cleared unlocked tiers. Locked tiers
-  -- get no entry (not foldable).
+  -- Browse is collapsed by default; the recommended mission stays prominent.
   local folds = {}
   for _, tier in ipairs(TIERS) do
     if progress.is_tier_unlocked(tier, progress_data.cleared) then
-      local tr, br = split_tier_rooms(rooms_by_tier[tier])
-      folds[tier] = tier_fully_cleared(tr, br, progress_data.cleared)
+      folds[tier] = true
     end
   end
 
   local lines, hls, nav = build_view(folds, progress_data, rooms_by_tier, width)
-  local buf, win = float.open_float(lines, width)
+  local buf, win
+  local render
+  buf, win = float.open_float(lines, width, { on_resize = function()
+    width = common.pick_float_width(float.FLOAT_MAP_W)
+    b = common.make_border(width)
+    if render then render() end
+  end })
   float.apply_hl(buf, hls)
 
   local _sel_ns = api.nvim_create_namespace("the-vimmer-sel")
@@ -232,22 +249,17 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
     if sel then
       if sel.kind ~= "tier" then write_menu_row(sel, true) end
       api.nvim_buf_add_highlight(buf, _sel_ns, "VimmerSelected", sel.line - 1, 0, -1)
-      api.nvim_win_set_cursor(win, { sel.line, 0 })
+      float.ensure_visible(win, sel.line)
     end
   end
 
   local function resize()
-    local height = #lines
-    local row = math.max(0, math.floor((vim.o.lines - height) / 2))
-    local col = math.max(0, math.floor((vim.o.columns - width) / 2))
-    api.nvim_win_set_config(win, {
-      relative = "editor", row = row, col = col, width = width, height = height,
-    })
+    float.resize_float(buf, width)
   end
 
   -- Rebuild from current fold state; keep the cursor on target_tier's header
   -- when given, otherwise clamp the existing index.
-  local function render(target_tier)
+  render = function(target_tier)
     lines, hls, nav = build_view(folds, progress_data, rooms_by_tier, width)
     local was = api.nvim_buf_get_option(buf, "modifiable")
     api.nvim_buf_set_option(buf, "modifiable", true)
@@ -302,6 +314,12 @@ function M.open_map(progress_data, rooms_by_tier, on_select)
   map_key("za", function() toggle_fold(current_tier()) end)
   map_key("zM", function() set_all_folds(true) end)
   map_key("zR", function() set_all_folds(false) end)
+  map_key("a", function() set_all_folds(false) end)
+  map_key("d", function()
+    local id = progress.weakest_regular_room_id(progress_data, rooms_by_tier)
+    local room = id and require("the-vimmer.rooms").get_room(id)
+    if room then api.nvim_win_close(win, true); on_select(room) end
+  end)
 
   map_key("<CR>", function()
     local item = nav[cur_idx]

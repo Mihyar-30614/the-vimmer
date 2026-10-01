@@ -3,6 +3,7 @@ local api = vim.api
 local common = require("the-vimmer.ui.common")
 local float  = require("the-vimmer.ui.float")
 local progress = require("the-vimmer.progress")
+local icons = require("the-vimmer.ui.icons")
 
 local TIERS = { "beginner", "warrior", "ninja", "grandmaster" }
 local TIER_LABELS = {
@@ -51,8 +52,8 @@ function M.open_progress(progress_data, rooms_by_tier)
   end
 
   add(b.top)
-  add(common.spread_row("⚔  HERO STATUS  ⚔",
-    string.format("LV %02d", common.game_level(progress_data.total_xp)), width),
+  add(b.row(common.spread_row(icons.get("hud") .. " HERO STATUS",
+    string.format("LV %02d", common.game_level(progress_data.total_xp)), width)),
     "VimmerPanel")
   add(b.row(common.game_hud_row(
     width, progress_data.total_xp, progress_data.streak, cleared_total, room_total)),
@@ -65,7 +66,7 @@ function M.open_progress(progress_data, rooms_by_tier)
       local wr = require("the-vimmer.rooms").get_room(weak_id)
       if wr then
         add(b.row(common.game_section("TRAINING TARGET", width)), "VimmerSection")
-        add(b.row(common.game_menu_row(false, "★", wr.title, width - 12)),
+        add(b.row(common.game_menu_row(false, icons.get("star"), wr.title, width - 12)),
           "VimmerBadge")
         add(b.sep)
       end
@@ -81,7 +82,7 @@ function M.open_progress(progress_data, rooms_by_tier)
     table.sort(names)
     if #names > 0 then
       add(b.row(common.game_section("MUTATORS", width)), "VimmerSection")
-      add(b.row("  ✦  " .. table.concat(names, "  ·  ")), "VimmerTimerWarn")
+      add(b.row("  " .. icons.get("xp") .. "  " .. table.concat(names, "  ·  ")), "VimmerTimerWarn")
       add(b.sep)
     end
   end
@@ -101,8 +102,8 @@ function M.open_progress(progress_data, rooms_by_tier)
     local label = TIER_LABELS[tier]
 
     if not unlocked then
-      add(b.row(string.format("  🔒 %s · %s  —  %s",
-        roman, label, TIER_PREREQ[tier] or "locked")), "VimmerLocked")
+      add(b.row(string.format("  %s %s · %s  —  %s",
+        icons.get("lock"), roman, label, TIER_PREREQ[tier] or "locked")), "VimmerLocked")
     else
       local cleared_ct = 0
       local total_ct = #tier_rooms
@@ -113,11 +114,11 @@ function M.open_progress(progress_data, rooms_by_tier)
       if boss_room then
         local bc = progress_data.cleared[boss_room.id]
         local bu = progress.is_boss_unlocked(tier, progress_data.cleared, total_ct)
-        if bc then boss_txt = "⚔ CLEARED"
-        elseif bu then boss_txt = "⚔ READY"
+        if bc then boss_txt = icons.get("boss") .. " CLEARED"
+        elseif bu then boss_txt = icons.get("boss") .. " READY"
         else
           local need = math.ceil(math.max(total_ct, 1) * 0.8)
-          boss_txt = string.format("%d/%d ⚔", cleared_ct, need)
+          boss_txt = string.format("%d to boss", math.max(0, need - cleared_ct))
         end
       end
       add(b.row(common.spread_row(
@@ -131,7 +132,11 @@ function M.open_progress(progress_data, rooms_by_tier)
   add(b.row(common.game_footer({ { "Q", "close" } })), "VimmerTeachFoot")
   add(b.bot)
 
-  local buf, win = float.open_float(lines, width)
+  local buf, win
+  buf, win = float.open_float(lines, width, { on_resize = function()
+    if api.nvim_win_is_valid(win) then api.nvim_win_close(win, true) end
+    M.open_progress(progress_data, rooms_by_tier)
+  end })
   float.apply_hl(buf, hls)
 
   local function close_progress()

@@ -20,10 +20,16 @@ ninja after the warrior boss, grandmaster after the ninja boss).
 Each room has three phases:
 
 1. **Teach** — command name, description, before/after example, usage tip
-2. **Play** — edit the bottom buffer to match the top target. HP starts at 100, drops 5 per non-optimal keystroke.
-3. **Results** — XP earned (scales with HP remaining and streak), streak counter
+2. **Play** — edit the bottom buffer to match the top target. HP starts at 100. Keys beyond the room budget cost 5 HP; different editing paths are welcome.
+3. **Results** — skill improvements, personal bests, mastery, and XP toward the next level. Press `D` for detailed key analysis. Continue or return to the map immediately, even during the XP animation.
 
-Die (HP → 0): room restarts, streak resets.
+Die (HP → 0): get a recovery tip, then retry, replay (`R`), or switch to practice (`P`). Streak resets on defeat.
+
+The map recommends the next skill and follows a deliberate curriculum. Its four-node route shows unlocked tiers; expand a tier with Enter or `za`, or browse everything with `a` / `zR`, or revisit your weakest skill with `d`. Three flawless clears mark a room **MASTERED**.
+
+Press `P` on a mission brief, or use `:VimmerPractice`, to explore without a timer or HP loss. Practice keeps ranked XP, streaks, personal bests, and unlocks unchanged. During play, `F1` opens the hint/key replay and pauses the countdown; `F2` returns to the map. Smaller terminals get a compact HUD, and long panels keep their title and controls visible while scrolling with `j` / `k`.
+
+Fast ranked clears offer a reward for the next room: a reserve potion restores 30 HP after enough damage; Freeze adds five seconds with Tab in a timed room; Double XP applies to the next ranked clear. Rewards carry through the next-room flow and its map. Freeze is preserved in untimed rooms.
 
 ## Requirements
 
@@ -43,7 +49,8 @@ Die (HP → 0): room restarts, streak resets.
                           -- | a table of role->hex overrides, e.g.
                           -- { xp = "#f1fa8c", boss = "#ff79c6", hp_low = "#ff5555" }
       border = "sharp",   -- "sharp" (default) | "rounded" (╭╮ arc corners on floats)
-      icons = "unicode",  -- "unicode" (default) | "ascii" (plain icon fallback)
+      icons = "unicode",  -- "unicode" (default) | "ascii" (plain icons, borders and bars)
+      reduced_motion = false, -- true disables flashes, counters and replay pulses
       -- Optional lifecycle hooks (payload tables documented below)
       hooks = {
         win = function(ev)
@@ -101,6 +108,7 @@ Or run directly from Neovim:
 | `:VimmerPlay` | Open room map, pick a room |
 | `:VimmerPlay <room_id>` | Jump directly to a room (e.g. `beginner_hjkl`) |
 | `:VimmerPick` | Fuzzy-pick a room (requires [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)) |
+| `:VimmerPractice [room_id]` | Practice a room or the next recommended skill without ranked scoring |
 | `:VimmerDaily` | Today’s seeded challenge + optional random unlocked mutator |
 | `:VimmerProgress` | Floating panel: XP, streak, tiers, suggested drill, mutators |
 | `:VimmerDrill` | Play your 3 weakest rooms back-to-back (by keystroke waste) |
@@ -112,8 +120,8 @@ Lifetime XP unlocks mutators used by `:VimmerDaily` (and extensible via `start_f
 
 | ID | Unlock (total XP) | Effect |
 |----|-------------------|--------|
-| `iron` | 120 | No +2 HP on every 3rd correct key |
-| `glass` | 280 | Wrong keys cost −8 HP instead of −5 |
+| `iron` | 120 | Key budget has no 50% grace |
+| `glass` | 280 | Keys beyond the budget cost −8 HP instead of −5 |
 | `rush` | 480 | Timer loses 2 seconds per tick |
 
 ### Extra room packs
@@ -175,8 +183,8 @@ return {
 
 `optimal_keystrokes` is the keystroke-by-keystroke ideal solution. Encode
 special keys as Lua escapes: `"\27"` = `<Esc>`, `"\22"` = `<C-v>`. Multi-char
-commands are split per key (`ciw` → `{ "c", "i", "w" }`). The list both scores
-the player (deviation costs HP) and is checked by the reachability harness.
+commands are split per key (`ciw` → `{ "c", "i", "w" }`). The list establishes the key budget
+(going over it costs HP) and is checked by the reachability harness.
 
 ### Required fields
 
@@ -255,6 +263,8 @@ Tests use [busted](https://lunarmodules.github.io/busted/). Game logic (XP, HP, 
 ```bash
 luarocks install busted --local
 ~/.luarocks/bin/busted tests/spec/
+XDG_DATA_HOME=/tmp/vimmer-ui-data XDG_STATE_HOME=/tmp/vimmer-ui-state \
+  XDG_CACHE_HOME=/tmp/vimmer-ui-cache nvim --headless -u NONE -l tests/ui_runtime.lua
 ```
 
 ### Reachability harness

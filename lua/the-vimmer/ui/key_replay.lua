@@ -27,6 +27,11 @@ function M.open_key_replay(room, replay_opts)
   add(b.top)
   add(b.row(common.game_section("KEY REPLAY", width)), "VimmerSection")
   add(b.sep)
+  if replay_opts.hint then
+    common.add_wrapped_prefixed(add, b.row, "  ", replay_opts.hint, width, "VimmerTeachTip")
+    add(b.sep)
+  end
+  local key_start = #lines
   if #keys == 0 then
     add(b.row("  (no scripted sequence)"), "VimmerLocked")
   else
@@ -38,7 +43,11 @@ function M.open_key_replay(room, replay_opts)
   add(b.row(common.game_footer({ { "Q", "close" } })), "VimmerTeachFoot")
   add(b.bot)
 
-  local buf, win = float.open_float(lines, width)
+  local buf, win
+  buf, win = float.open_float(lines, width, { on_resize = function()
+    if api.nvim_win_is_valid(win) then api.nvim_win_close(win, true) end
+    if replay_opts.on_close then replay_opts.on_close() end
+  end })
   float.apply_hl(buf, hls)
   local ns = api.nvim_create_namespace("the-vimmer-replay")
 
@@ -48,20 +57,22 @@ function M.open_key_replay(room, replay_opts)
 
   vim.keymap.set("n", "q", close_replay, { buffer = buf, nowait = true, silent = true })
 
-  if #keys > 0 then
+  if #keys > 0 and not common.reduced_motion() then
     local i = 1
     local function pulse()
       if not api.nvim_buf_is_valid(buf) then return end
       api.nvim_buf_clear_namespace(buf, ns, 0, -1)
       float.apply_hl(buf, hls)
       if i <= #keys then
-        api.nvim_buf_add_highlight(buf, ns, "VimmerCrit", 2 + i, 0, -1)
+        api.nvim_buf_add_highlight(buf, ns, "VimmerCrit", key_start + i - 1, 0, -1)
+        float.ensure_visible(win, key_start + i)
         i = i + 1
         vim.defer_fn(pulse, 170)
       end
     end
     vim.defer_fn(pulse, 120)
   end
+  return buf, win
 end
 
 return M

@@ -42,7 +42,8 @@ function M.build_diff_line(before_ex, after_ex, max_w)
   local before_disp = before_ex:gsub("\n", " ↵ "):gsub("|", "▌")
   local after_disp = after_ex:gsub("\n", " ↵ "):gsub("|", "▌")
   local combined = before_disp .. "  →  " .. after_disp
-  if visible_len(combined) <= max_w then
+  local measure = vim and vim.fn and vim.fn.strdisplaywidth or visible_len
+  if measure(combined) <= max_w then
     return { combined }
   end
   return { before_disp, "→  " .. after_disp }

@@ -1,6 +1,7 @@
 -- Pure formatting and layout helpers for the-vimmer's UI screens.
 -- No side effects on Neovim state. Safe to require headlessly.
 local M = {}
+local icons = require("the-vimmer.ui.icons")
 
 M.MUTATOR_TEACH = {
   iron = "Iron",
@@ -10,16 +11,33 @@ M.MUTATOR_TEACH = {
 
 function M.pick_float_width(desired)
   local margin = 4
-  local max_w = math.max(44, vim.o.columns - margin)
+  local max_w = math.max(4, vim.o.columns - margin)
   return math.min(desired, max_w)
 end
 
--- Truncate a string to max byte length, appending "..." when needed.
+-- Measure terminal cells, preserving complete UTF-8 characters.
 function M.truncate(s, max_len)
   s = s or ""
-  if #s <= max_len then return s end
-  if max_len <= 3 then return s:sub(1, max_len) end
-  return s:sub(1, max_len - 3) .. "..."
+  max_len = math.max(0, max_len)
+  if vim.fn.strdisplaywidth(s) <= max_len then return s end
+  local suffix = max_len > 3 and "..." or ""
+  local budget = max_len - #suffix
+  local out = ""
+  for i = 1, vim.fn.strchars(s) do
+    local next_char = vim.fn.strcharpart(s, i - 1, 1)
+    if vim.fn.strdisplaywidth(out .. next_char) > budget then break end
+    out = out .. next_char
+  end
+  return out .. suffix
+end
+
+function M.reduced_motion()
+  local root = package.loaded["the-vimmer"]
+  return root and root.config and root.config.reduced_motion == true
+end
+
+function M.clean_title(title)
+  return (title or ""):gsub("^BOSS:%s*", ""):gsub("^Phase %d+:%s*", "")
 end
 
 -- Fill a box row with left and right text separated by spaces.
@@ -29,6 +47,8 @@ function M.spread_row(left, right, width, indent)
   left = indent .. (left or "")
   right = right or ""
   local inner = width - 2
+  right = M.truncate(right, math.max(0, math.floor(inner * 0.55)))
+  left = M.truncate(left, math.max(0, inner - vim.fn.strdisplaywidth(right) - 1))
   local gap = inner - vim.fn.strdisplaywidth(left) - vim.fn.strdisplaywidth(right)
   if gap < 1 then gap = 1 end
   return left .. string.rep(" ", gap) .. right
@@ -78,6 +98,7 @@ function M.bar_fill(value, max, bar_len, fill, empty)
   bar_len = bar_len or 8
   fill = fill or "█"
   empty = empty or "░"
+  if icons.mode() == "ascii" then fill, empty = "#", "-" end
   local filled = 0
   if max and max > 0 then
     filled = math.floor((value or 0) / max * bar_len + 0.5)
@@ -97,7 +118,9 @@ end
 -- Centered section divider: ── ══ TITLE ══ ──
 function M.game_section(title, width, indent)
   indent = indent or "  "
-  local decor = "══ " .. title .. " ══"
+  local edge = icons.mode() == "ascii" and "==" or "══"
+  local decor = edge .. " " .. title .. " " .. edge
+  local dash = icons.mode() == "ascii" and "-" or "─"
   local inner = width - 2 - vim.fn.strdisplaywidth(indent)
   local decor_w = vim.fn.strdisplaywidth(decor)
   if decor_w >= inner then
@@ -105,7 +128,7 @@ function M.game_section(title, width, indent)
   end
   local pad = inner - decor_w
   local left = math.floor(pad / 2)
-  return indent .. string.rep("─", left) .. decor .. string.rep("─", pad - left)
+  return indent .. string.rep(dash, left) .. decor .. string.rep(dash, pad - left)
 end
 
 function M.game_footer(bindings)
@@ -113,111 +136,57 @@ function M.game_footer(bindings)
   for _, bind in ipairs(bindings or {}) do
     parts[#parts + 1] = string.format("[%s] %s", bind[1], bind[2])
   end
-  return "  " .. table.concat(parts, "  ")
+  return "  " .. table.concat(parts, " ")
 end
 
 -- Menu row with optional selection cursor (▶) and status icon.
 function M.game_menu_row(selected, icon, title, title_max, indent)
   indent = indent or "  "
-  local cur = selected and "▶" or " "
+  local cur = selected and icons.get("cursor") or " "
   return indent .. cur .. " " .. (icon or "·") .. "  " .. M.truncate(title or "", title_max)
 end
 
 function M.game_hud_row(width, xp, streak, cleared, total)
-  local lvl = M.game_level(xp)
-  local xp_bar = M.bracket_bar(xp, 1000, 10, "▓", "░")
-  local left = string.format("LV %02d   XP %s %d", lvl, xp_bar, xp or 0)
-  local parts = {}
-  if (streak or 0) > 0 then parts[#parts + 1] = string.format("🔥 x%d", streak) end
-  parts[#parts + 1] = string.format("%d/%d cleared", cleared or 0, total or 0)
-  return M.spread_row(left, table.concat(parts, "  ·  "), width)
+  local remaining = 120 - ((xp or 0) % 120)
+  local left = string.format("XP %s %d to LV %d", M.xp_bar(xp, 6), remaining, M.game_level(xp) + 1)
+  local right = string.format("%d/%d clear", cleared or 0, total or 0)
+  if (streak or 0) > 0 then right = right .. "  " .. icons.get("streak") .. " " .. streak end
+  return M.spread_row(left, right, width)
 end
 
 function M.play_hud_section(title)
-  return " " .. string.format("══ %s ══", title)
+  return " " .. title
 end
 
--- Build play-sidebar lines + highlight specs. Pure / headless-testable.
--- ctx.icons is a table of glyph strings (see ui.icons).
+-- Mission first; compact combat stats leave room for the editing task.
 function M.build_play_hud(ctx)
   local lines, hls = {}, {}
+  local width = math.max(4, (ctx.width or 28) - 2)
   local function add(text, group)
-    lines[#lines + 1] = text
+    lines[#lines + 1] = M.truncate(text, width + 1)
     if group then hls[#hls + 1] = { group, #lines - 1, 0, -1 } end
   end
-
-  local ic = ctx.icons or {}
-  local hp_grp = ctx.hp_group or "VimmerHP_high"
-
-  add("")
-  add(M.play_hud_section("COMBAT"), "VimmerSection")
-  add("")
-  add(string.format(" %s  HP", ic.hp or "HP"), "VimmerTitle")
-  add(" " .. (ctx.hp_bar or ""), hp_grp)
-  add(string.format(" %d / 100", ctx.display_hp or 0), hp_grp)
-  add("")
-
-  if ctx.feedback and ctx.feedback ~= "" then
-    add(string.format(" %s  %s", ic.warn or "!", ctx.feedback), "VimmerDeath")
-    add("")
+  add(" MISSION", "VimmerSection")
+  for _, ln in ipairs(M.wrap_teach_text(ctx.goal or "Match the target above.", width)) do
+    add(" " .. ln, "VimmerTitle")
   end
-
+  if ctx.command then
+    for _, ln in ipairs(M.wrap_teach_text(ctx.command, width)) do add(" " .. ln, "VimmerCommand") end
+  end
+  add("")
+  add(" COMBAT", "VimmerSection")
+  add(string.format(" HP %d/100 %s", ctx.display_hp or 0, ctx.hp_bar or ""), ctx.hp_group or "VimmerHP_high")
+  add(string.format(" KEYS %d/%d  STREAK %d", ctx.keys_used or 0, ctx.keys_budget or 0, ctx.streak or 0), "VimmerTeachTip")
+  if ctx.practice then add(" PRACTICE: no HP loss", "VimmerCleared") end
   if ctx.timer_remaining and ctx.initial_time then
-    local t_grp = ctx.timer_group or "VimmerTimerOk"
-    local mins = math.floor(ctx.timer_remaining / 60)
-    local secs = ctx.timer_remaining % 60
-    add(string.format(" %s  TIMER", ic.timer or "T"), "VimmerTitle")
-    add(" " .. (ctx.timer_bar or ""), t_grp)
-    add(string.format(" %d:%02d", mins, secs), t_grp)
-    if ctx.timer_low then
-      add(" HURRY — time low!", "VimmerTimerDanger")
-    end
-    add("")
+    add(string.format(" TIMER %d:%02d", math.floor(ctx.timer_remaining / 60), ctx.timer_remaining % 60), ctx.timer_group)
   end
-
-  add(string.format(" %s  STREAK", ic.streak or "*"), "VimmerTitle")
-  add(string.format(" x%d", ctx.streak or 0), "VimmerTierWarrior")
+  if ctx.boss_phase then add(string.format(" PHASE %d / %d", ctx.boss_phase, ctx.boss_total), "VimmerBoss") end
+  if ctx.feedback then add(" " .. ctx.feedback, "VimmerDeath") end
+  if ctx.power_up_str then add(" " .. ctx.power_up_str, "VimmerXP") end
   add("")
-
-  local over = (ctx.keys_used or 0) > (ctx.keys_budget or 0)
-  add(string.format(" %s  KEYS", ic.keys or "K"), "VimmerTitle")
-  add(string.format(" %d / %d", ctx.keys_used or 0, ctx.keys_budget or 0),
-    over and "VimmerDamage" or "VimmerTitle")
-  if over then
-    add(" OVER BUDGET", "VimmerTimerDanger")
-  end
-  add("")
-
-  if ctx.boss_phase and ctx.boss_total and ctx.boss_total > 1 then
-    add(string.format(" %s  PHASE %d / %d", ic.phase or "P",
-      ctx.boss_phase, ctx.boss_total), "VimmerBoss")
-    add("")
-  end
-
-  if ctx.power_up_str and ctx.power_up_str ~= "" then
-    add(" " .. ctx.power_up_str, "VimmerXP")
-    add("")
-  end
-
-  add(" " .. string.rep("─", ctx.width and (ctx.width - 2) or 22))
-  add("")
-  add(M.play_hud_section("MISSION"), "VimmerSection")
-  add("")
-
-  if ctx.command and ctx.command ~= "" then
-    for _, ln in ipairs(M.wrap_teach_text(ctx.command, (ctx.width or 24) - 2)) do
-      add(" " .. ln, "VimmerCommand")
-    end
-  end
-
-  if ctx.goal and ctx.goal ~= "" then
-    add("")
-    add(" GOAL:", "VimmerXP")
-    for _, ln in ipairs(M.wrap_teach_text(ctx.goal, (ctx.width or 24) - 2)) do
-      add(" " .. ln, "VimmerTeachTip")
-    end
-  end
-
+  add(" [F1] hint / replay", "VimmerTeachFoot")
+  add(" [F2] leave room", "VimmerTeachFoot")
   return lines, hls
 end
 
@@ -359,18 +328,20 @@ end
 
 function M.border_glyphs(style)
   style = style or M.current_border_style()
+  if icons.mode() == "ascii" then
+    return { tl = "+", tr = "+", bl = "+", br = "+", h = "-", ml = "+", mr = "+", v = "|" }
+  end
   return M.BORDER[style] or M.BORDER.sharp
 end
 
 function M.pad_row(content, width, glyphs)
   glyphs = glyphs or M.border_glyphs()
-  -- Strip UTF-8 multi-byte sequences down to one byte each to estimate display width.
-  -- Decimal escapes (not \xHH) so the patterns parse under plain Lua 5.1 as well as LuaJIT.
-  local visible = content:gsub("[\194-\223][\128-\191]", "_")
-    :gsub("[\224-\239][\128-\191][\128-\191]", "_")
-    :gsub("[\240-\247][\128-\191][\128-\191][\128-\191]", "_")
-  local pad = width - 2 - #visible
-  if pad < 0 then pad = 0 end
+  if icons.mode() == "ascii" then
+    content = content:gsub("·", "/"):gsub("—", "-"):gsub("–", "-")
+      :gsub("→", "->"):gsub("↵", "\\n"):gsub("▌", "|")
+  end
+  content = M.truncate(content, math.max(0, width - 2))
+  local pad = math.max(0, width - 2 - vim.fn.strdisplaywidth(content))
   return glyphs.v .. content .. string.rep(" ", pad) .. glyphs.v
 end
 
@@ -496,7 +467,7 @@ function M.streak_milestone_phrase(streak_after_win)
 end
 
 function M.xp_bar(xp, bar_width)
-  return M.bracket_bar(xp, 1000, bar_width, "▓", "░")
+  return M.bracket_bar((xp or 0) % 120, 120, bar_width, "▓", "░")
 end
 
 return M

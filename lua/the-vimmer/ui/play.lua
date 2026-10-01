@@ -11,21 +11,22 @@ local _play_tab = nil
 local _timer_handle = nil
 
 -- Shared full-buffer flash sequences (group, duration_ms per step).
-local WIN_FLASH = { { "VimmerWin", 150 }, { "VimmerCrit", 150 }, { "VimmerWin", 150 } }
-local DEATH_FLASH = { { "VimmerDamage", 200 }, { nil, 100 }, { "VimmerDeath", 200 } }
+local WIN_FLASH = { { "VimmerWin", 120 } }
+local DEATH_FLASH = { { "VimmerDamage", 120 } }
 
 local function show_phase_banner(win, phase_num, total, callback)
-  local label = common.game_section(string.format("PHASE %d / %d", phase_num, total), 28)
+  if common.reduced_motion() then callback(); return end
+  local label = common.truncate(string.format("PHASE %d / %d", phase_num, total), api.nvim_win_get_width(win))
   local buf = api.nvim_create_buf(false, true)
   api.nvim_buf_set_lines(buf, 0, -1, false, { label })
   api.nvim_buf_set_option(buf, "modifiable", false)
   api.nvim_buf_set_option(buf, "bufhidden", "wipe")
   local win_width = api.nvim_win_get_width(win)
-  local col = math.max(0, math.floor((win_width - #label) / 2))
+  local col = math.max(0, math.floor((win_width - vim.fn.strdisplaywidth(label)) / 2))
   local banner_win = api.nvim_open_win(buf, false, {
     relative = "win", win = win,
     row = 2, col = col,
-    width = #label, height = 1,
+    width = vim.fn.strdisplaywidth(label), height = 1,
     style = "minimal", border = "none",
   })
   api.nvim_buf_add_highlight(buf, 0, "VimmerPhase", 0, 0, -1)
@@ -74,11 +75,15 @@ local function apply_buffer_hygiene(buf)
   end
 end
 
-function M.open_play(room, game_state, on_win, on_death)
+function M.open_play(room, game_state, on_win, on_death, opts)
+  opts = opts or {}
   M._close_play()
   local hl = require("the-vimmer.highlights")
-  local initial_time = room.time_limit
-  local HUD_W = 28
+  local initial_time = game_state.timer_remaining
+  local wide = vim.o.columns >= 100 and vim.o.lines >= 28
+  local HUD_W = wide and 28 or math.max(4, vim.o.columns)
+  local paused = false
+  local group
   local _hud_ns = api.nvim_create_namespace("the-vimmer-hud")
   local hud_feedback_line = nil
   -- HP shown in the HUD lags the real value so a hit drains the bar smoothly.
@@ -99,20 +104,26 @@ function M.open_play(room, game_state, on_win, on_death)
 
   vim.cmd("tabnew")
   _play_tab = api.nvim_get_current_tabpage()
+  local session_tab = _play_tab
+  local win_callback, death_callback = on_win, on_death
+  on_win = function() if _play_tab == session_tab and api.nvim_tabpage_is_valid(session_tab) then win_callback() end end
+  on_death = function() if _play_tab == session_tab and api.nvim_tabpage_is_valid(session_tab) then death_callback() end end
   local left_win = api.nvim_get_current_win()
 
-  vim.cmd("botright vsplit")
+  vim.cmd(wide and "botright vsplit" or "botright split")
   local hud_win = api.nvim_get_current_win()
   api.nvim_win_set_buf(hud_win, hud_buf)
-  api.nvim_win_set_width(hud_win, HUD_W)
-  vim.wo[hud_win].winfixwidth    = true
+  if wide then api.nvim_win_set_width(hud_win, HUD_W) else api.nvim_win_set_height(hud_win, 5) end
+  vim.wo[hud_win].winfixwidth = wide
+  vim.wo[hud_win].winfixheight = not wide
   vim.wo[hud_win].number         = false
   vim.wo[hud_win].relativenumber = false
   vim.wo[hud_win].signcolumn     = "no"
   vim.wo[hud_win].wrap           = false
+  vim.wo[hud_win].winhighlight = "Normal:VimmerNormal,EndOfBuffer:VimmerNormal"
   vim.wo[hud_win].cursorline     = false
   vim.wo[hud_win].statusline     = " "
-  vim.wo[hud_win].winbar         = "%#VimmerPanel# " .. icons.get("hud") .. "  COMBAT HUD%*"
+  vim.wo[hud_win].winbar = wide and "%#VimmerPanel# MISSION & STATUS%*" or ""
 
   api.nvim_set_current_win(left_win)
   local top_win = left_win
@@ -161,6 +172,7 @@ function M.open_play(room, game_state, on_win, on_death)
       display_hp = display_hp,
       hp_bar = common.bracket_bar(display_hp, 100, 10, "█", "░"),
       hp_group = hl.hp_group(display_hp),
+      practice = game_state.practice,
       feedback = hud_feedback_line,
       timer_remaining = game_state.timer_remaining,
       initial_time = initial_time,
@@ -179,6 +191,25 @@ function M.open_play(room, game_state, on_win, on_death)
       goal = goal_view,
     })
 
+    if not wide then
+      lines, hls = {}, {}
+      local budget = math.max(4, HUD_W - 2)
+      local goal_lines = common.wrap_teach_text(goal_view or "Match the target above.", budget - 6)
+      for i = 1, math.min(2, #goal_lines) do
+        lines[#lines + 1] = common.truncate((i == 1 and " GOAL " or "      ") .. goal_lines[i], budget)
+        hls[#hls + 1] = { "VimmerTitle", #lines - 1, 0, -1 }
+      end
+      local phase_label = room.is_boss and string.format(" P%d/%d ", game_state.boss_phase, game_state.boss_total_phases) or " "
+      lines[#lines + 1] = common.truncate(phase_label .. room.command, budget)
+      hls[#hls + 1] = { "VimmerCommand", #lines - 1, 0, -1 }
+      local status = string.format(" HP %d  KEYS %d/%d", display_hp, game_state.keystrokes_used, game_state.keystrokes_budget)
+      if game_state.timer_remaining then status = status .. "  " .. game_state.timer_remaining .. "s" end
+      if game_state.practice then status = status .. "  PRACTICE" end
+      lines[#lines + 1] = common.truncate(status, budget)
+      hls[#hls + 1] = { hl.hp_group(display_hp), #lines - 1, 0, -1 }
+      lines[#lines + 1] = common.truncate(hud_feedback_line or " [F1] hint  [F2] map  [TAB] freeze", budget)
+      hls[#hls + 1] = { "VimmerTeachFoot", #lines - 1, 0, -1 }
+    end
     api.nvim_buf_set_option(hud_buf, "modifiable", true)
     api.nvim_buf_set_lines(hud_buf, 0, -1, false, lines)
     api.nvim_buf_clear_namespace(hud_buf, _hud_ns, 0, -1)
@@ -204,6 +235,7 @@ function M.open_play(room, game_state, on_win, on_death)
     if not game_state.timer_remaining then return end
     _timer_handle = vim.loop.new_timer()
     _timer_handle:start(1000, 1000, vim.schedule_wrap(function()
+      if paused then return end
       if game_state.state ~= "playing" then
         if _timer_handle then _timer_handle:stop() end
         return
@@ -270,13 +302,27 @@ function M.open_play(room, game_state, on_win, on_death)
       key = (typed ~= nil and typed ~= "") and typed or key
       if typed == "" then return end
 
+      local controls = { "<F1>", "<F2>" }
+      for _, control in ipairs(controls) do
+        if key == api.nvim_replace_termcodes(control, true, false, true) then return end
+      end
+      if key == "\t" and vim.fn.mode() == "n" then return end
       local hp_before = game_state.hp
+      local powerups_before = #game_state.power_ups
       game_state:register_key(key)
+      local healed = #game_state.power_ups < powerups_before and game_state.hp >= hp_before
+      if healed then
+        if hp_anim then hp_anim.cancel(); hp_anim = nil end
+        display_hp = game_state.hp
+        hud_pulse_feedback("Reserve potion: +30 HP")
+      end
       local lost_hp = game_state.hp < hp_before
 
       if lost_hp then
         if hp_anim then hp_anim.cancel(); hp_anim = nil end
         if game_state.hp <= 0 then
+          display_hp = game_state.hp
+        elseif common.reduced_motion() then
           display_hp = game_state.hp
         else
           local from = display_hp
@@ -314,10 +360,11 @@ function M.open_play(room, game_state, on_win, on_death)
             float.multi_flash(play_buf, WIN_FLASH, on_win)
           else
             float.multi_flash(play_buf, WIN_FLASH, function()
+              if _play_tab ~= session_tab then return end
               game_state:advance_boss_phase()
               local next_phase = game_state.boss_phase
               show_phase_banner(play_win, next_phase, game_state.boss_total_phases, function()
-                start_phase(room.phases[next_phase])
+                if _play_tab == session_tab then start_phase(room.phases[next_phase]) end
               end)
             end)
           end
@@ -325,11 +372,47 @@ function M.open_play(room, game_state, on_win, on_death)
       end)
     end, ns)
 
+    local function show_hint()
+      paused = true
+      local _, replay_win = require("the-vimmer.ui.key_replay").open_key_replay(room, {
+        phase_index = room.is_boss and game_state.boss_phase or nil,
+        hint = view.efficiency_hint or room.usage_tip,
+      })
+      api.nvim_create_autocmd("WinClosed", { pattern = tostring(replay_win), once = true, callback = function() paused = false end })
+    end
+    vim.keymap.set({ "n", "i", "v" }, "<F1>", function()
+      vim.cmd("stopinsert")
+      vim.schedule(show_hint)
+    end, { buffer = play_buf, silent = true })
+    vim.keymap.set({ "n", "i", "v" }, "<F2>", function()
+      vim.cmd("stopinsert")
+      vim.schedule(function() M._close_play(); if opts.on_leave then opts.on_leave() end end)
+    end, { buffer = play_buf, silent = true })
     vim.keymap.set("n", "<Tab>", function()
       if game_state:activate_freeze(5) then update_hud() end
     end, { buffer = play_buf, nowait = true, silent = true })
   end
 
+  group = api.nvim_create_augroup("VimmerPlayLayout", { clear = true })
+  api.nvim_create_autocmd("VimResized", { group = group, callback = function()
+    if not api.nvim_win_is_valid(hud_win) then return end
+    wide = vim.o.columns >= 100 and vim.o.lines >= 28
+    HUD_W = wide and 28 or math.max(4, vim.o.columns)
+    vim.wo[hud_win].winfixwidth = false
+    vim.wo[hud_win].winfixheight = false
+    api.nvim_win_call(hud_win, function() vim.cmd(wide and "wincmd L" or "wincmd J") end)
+    if wide then api.nvim_win_set_width(hud_win, HUD_W) else api.nvim_win_set_height(hud_win, 5) end
+    vim.wo[hud_win].winfixwidth = wide
+    vim.wo[hud_win].winfixheight = not wide
+    vim.wo[hud_win].winbar = wide and "%#VimmerPanel# MISSION & STATUS%*" or ""
+    update_hud()
+  end })
+  api.nvim_create_autocmd("WinClosed", { group = group, pattern = tostring(play_win), once = true, callback = function()
+    pcall(api.nvim_del_augroup_by_id, group)
+    if game_state.state == "playing" then
+      vim.schedule(function() if _play_tab == session_tab then M._close_play() end end)
+    end
+  end })
   update_hud()
   local first_phase = room.is_boss and room.phases[1] or room
   start_phase(first_phase)

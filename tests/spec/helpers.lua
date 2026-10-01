@@ -19,12 +19,20 @@ if not rawget(_G, "vim") then
         end
         return list and files or table.concat(files, "\n")
       end,
-      strdisplaywidth = function(s) return #(s or "") end,
-      strchars = function(s) return #(s or "") end,
+      strdisplaywidth = function(s)
+        local n = 0
+        for _ in (s or ""):gmatch("[%z\1-\127\194-\244][\128-\191]*") do n = n + 1 end
+        return n
+      end,
+      strchars = function(s)
+        local n = 0
+        for _ in (s or ""):gmatch("[%z\1-\127\194-\244][\128-\191]*") do n = n + 1 end
+        return n
+      end,
       strcharpart = function(s, start, len)
-        s = s or ""
-        if len == nil then return s:sub(start + 1) end
-        return s:sub(start + 1, start + len)
+        local chars = {}
+        for ch in (s or ""):gmatch("[%z\1-\127\194-\244][\128-\191]*") do chars[#chars + 1] = ch end
+        return table.concat(chars, "", start + 1, len and math.min(#chars, start + len) or #chars)
       end,
     },
     tbl_deep_extend = function(_, base, override)

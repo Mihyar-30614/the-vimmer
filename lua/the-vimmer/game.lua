@@ -13,6 +13,7 @@ function M.new()
     state = "idle",        -- idle | teaching | playing | results
     current_room = nil,
     hp = 100,
+    practice = false,
     streak = 0,            -- rooms cleared in a row without dying
 
     keystrokes_used = 0,         -- total keys pressed this phase
@@ -81,7 +82,9 @@ function M.new()
   end
 
   -- Transition from teaching → playing; resets all per-room state.
-  function g:begin_play()
+  function g:begin_play(opts)
+    opts = opts or {}
+    self.practice = opts.practice == true
     if not self.current_room then return end
     self.hp = 100
     self.keystrokes_over_budget = 0
@@ -97,8 +100,8 @@ function M.new()
       self.boss_total_phases = 0
       self.timer_remaining = self.current_room.time_limit or nil
     end
+    if self.practice then self.timer_remaining = nil end
     self.state = "playing"
-    self:_apply_auto_powerups()
     self:_reset_keystroke_budget()
   end
 
@@ -113,7 +116,10 @@ function M.new()
     self.keystrokes_used = self.keystrokes_used + 1
     if self.keystrokes_used > self.keystrokes_budget then
       self.keystrokes_over_budget = self.keystrokes_over_budget + 1
-      self.hp = math.max(0, self.hp - self:_over_budget_cost())
+      if not self.practice then
+        self.hp = math.max(0, self.hp - self:_over_budget_cost())
+        if self.hp <= 70 then self:_apply_auto_powerups() end
+      end
     end
   end
 
@@ -139,24 +145,27 @@ function M.new()
     return false
   end
 
-  -- Consume any queued hp_restore power-ups immediately on play start.
+  -- A reserve potion triggers after damage, when all 30 HP can be useful.
   function g:_apply_auto_powerups()
     for i = #self.power_ups, 1, -1 do
-      if self.power_ups[i].type == "hp_restore" then
+      if self.power_ups[i].type == "hp_restore" and self.hp <= 70 then
         self.hp = math.min(100, self.hp + 30)
         table.remove(self.power_ups, i)
+        break
       end
     end
   end
 
   -- Max 2 power-ups held at once.
   function g:grant_powerup(pu_type)
-    if #self.power_ups >= 2 then return end
+    if #self.power_ups >= 2 then return false end
     self.power_ups[#self.power_ups + 1] = { type = pu_type }
+    return true
   end
 
   -- Consume a freeze_timer power-up, adding `seconds` back to the clock.
   function g:activate_freeze(seconds)
+    if not self.timer_remaining then return false end
     for i, pu in ipairs(self.power_ups) do
       if pu.type == "freeze_timer" then
         table.remove(self.power_ups, i)
@@ -184,7 +193,7 @@ function M.new()
     local progress = require("the-vimmer.progress")
     local double = false
     for i = #self.power_ups, 1, -1 do
-      if self.power_ups[i].type == "double_xp" then
+      if not self.practice and self.power_ups[i].type == "double_xp" then
         double = true
         table.remove(self.power_ups, i)
         break
@@ -215,6 +224,7 @@ function M.new()
     if self.flawless_run then
       self.last_xp = math.floor(self.last_xp * 1.15)
     end
+    if self.practice then self.last_xp = 0 end
     self.state = "results"
   end
 

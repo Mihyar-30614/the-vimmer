@@ -22,6 +22,7 @@ function M.setup(opts)
   M.config.theme = opts.theme or "dracula"
   M.config.border = opts.border or "sharp"
   M.config.icons = opts.icons or "unicode"
+  M.config.reduced_motion = opts.reduced_motion == true
   require("the-vimmer.highlights").setup()
   require("the-vimmer.commands").register(opts)
 end

@@ -199,6 +199,7 @@ function M.load_tier(tier)
     end
   end
 
+  require("the-vimmer.learning").sort(result, tier)
   _tier_cache[tier] = result
   return result
 end

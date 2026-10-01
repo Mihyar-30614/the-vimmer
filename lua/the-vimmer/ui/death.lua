@@ -29,7 +29,10 @@ function M.open_death(room, on_retry, on_map, death_opts)
   if over_budget > 0 then
     add(b.row(string.format("  Over-budget keys: %d", over_budget)), "VimmerLocked")
   end
-  add(b.row("  Streak lost"))
+  local phase = room.is_boss and room.phases[death_opts.phase_index or 1] or room
+  common.add_wrapped_prefixed(add, b.row, "  ", phase.efficiency_hint or room.usage_tip
+    or "Replay the sequence, then try one command at a time.", width, "VimmerTeachTip")
+  common.add_wrapped_prefixed(add, b.row, "  ", "[R] Replay the keys / [P] Untimed practice", width, "VimmerCleared")
   add(b.sep)
   add(b.row("  Optimal sequence:"), "VimmerTitle")
   for _, ln in ipairs(common.build_optimal_lines(room, death_optimal_inner)) do
@@ -37,11 +40,15 @@ function M.open_death(room, on_retry, on_map, death_opts)
   end
   add(b.sep)
   add(b.row(common.game_footer({
-    { "ENTER", "retry" }, { "R", "replay" }, { "Q", "map" },
+    { "RET", "retry" }, { "P", "try" }, { "Q", "map" },
   })), "VimmerTeachFoot")
   add(b.bot)
 
-  local buf, win = float.open_float(lines, width)
+  local buf, win
+  buf, win = float.open_float(lines, width, { on_resize = function()
+    if api.nvim_win_is_valid(win) then api.nvim_win_close(win, true) end
+    M.open_death(room, on_retry, on_map, death_opts)
+  end })
   float.apply_hl(buf, hls)
 
   vim.keymap.set("n", "<CR>", function()
@@ -49,10 +56,19 @@ function M.open_death(room, on_retry, on_map, death_opts)
     on_retry()
   end, { buffer = buf, nowait = true, silent = true })
 
-  vim.keymap.set("n", "r", function()
-    require("the-vimmer.ui").open_key_replay(room, { phase_index = room.is_boss and 1 or nil })
+  vim.keymap.set("n", "p", function()
+    if death_opts.on_practice then api.nvim_win_close(win, true); death_opts.on_practice() end
   end, { buffer = buf, nowait = true, silent = true })
 
+  vim.keymap.set("n", "r", function()
+    require("the-vimmer.ui").open_key_replay(room, { phase_index = death_opts.phase_index })
+  end, { buffer = buf, nowait = true, silent = true })
+
+  local function back()
+    if api.nvim_win_is_valid(win) then api.nvim_win_close(win, true) end
+    on_map()
+  end
+  vim.keymap.set("n", "<Esc>", back, { buffer = buf, nowait = true, silent = true })
   vim.keymap.set("n", "q", function()
     api.nvim_win_close(win, true)
     on_map()

@@ -12,6 +12,7 @@ local M = {}
 -- Dracula-derived defaults. This reproduces the original hardcoded look exactly.
 local DRACULA = {
   title            = "#ffffff",
+  background       = "#282a36",
   xp               = "#f1fa8c",
   command          = "#f1fa8c",
   example          = "#8be9fd",
@@ -20,7 +21,7 @@ local DRACULA = {
   tier_ninja       = "#ff79c6",
   tier_grandmaster = "#bd93f9",
   cleared          = "#50fa7b",
-  locked           = "#6272a4",
+  locked           = "#a8b5df",
   hp_high          = "#50fa7b",
   hp_mid           = "#ffb86c",
   hp_low           = "#ff5555",
@@ -38,7 +39,7 @@ local DRACULA = {
   crit_bg          = "#5c4a00",
   crit_fg          = "#ffd700",
   teach_tip        = "#bcc4ea",
-  teach_foot       = "#6272a4",
+  teach_foot       = "#a8b5df",
   panel_bg         = "#383a59",
   section          = "#bd93f9",
   menu_sel_bg      = "#44475a",
@@ -104,17 +105,18 @@ end
 
 -- Read a foreground color from a live highlight group as "#rrggbb", or nil.
 -- Works across Neovim 0.9+ (nvim_get_hl) and 0.8 (nvim_get_hl_by_name).
-function M.default_reader(group)
+function M.default_reader(group, channel)
+  channel = channel or "fg"
   local fg
   local ok, hl = pcall(function()
     if vim.api.nvim_get_hl then
       return vim.api.nvim_get_hl(0, { name = group, link = false })
     end
   end)
-  if ok and type(hl) == "table" then fg = hl.fg end
+  if ok and type(hl) == "table" then fg = hl[channel] end
   if type(fg) ~= "number" then
     local ok2, hl2 = pcall(vim.api.nvim_get_hl_by_name, group, true)
-    if ok2 and type(hl2) == "table" then fg = hl2.foreground end
+    if ok2 and type(hl2) == "table" then fg = hl2[channel == "bg" and "background" or "foreground"] end
   end
   if type(fg) ~= "number" then return nil end
   return string.format("#%06x", fg)
@@ -125,11 +127,41 @@ end
 function M.resolve_auto(reader)
   reader = reader or M.default_reader
   local c = copy(DRACULA)
+  c.background = reader("Normal", "bg") or c.background
+  c.panel_bg = reader("NormalFloat", "bg") or c.background
+  c.menu_sel_bg = reader("Visual", "bg") or c.panel_bg
   for role, group in pairs(AUTO_SAMPLE) do
     local hex = reader(group)
     if hex then c[role] = hex end
   end
   return c
+end
+
+local function rgb(hex)
+  return tonumber(hex:sub(2, 3), 16), tonumber(hex:sub(4, 5), 16), tonumber(hex:sub(6, 7), 16)
+end
+local function luminance(hex)
+  local r, g, b = rgb(hex)
+  local function linear(v)
+    v = v / 255
+    return v <= 0.04045 and v / 12.92 or ((v + 0.055) / 1.055) ^ 2.4
+  end
+  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b)
+end
+local function contrast(a, b)
+  local x, y = luminance(a), luminance(b)
+  return (math.max(x, y) + 0.05) / (math.min(x, y) + 0.05)
+end
+local function readable(fg, bg)
+  if contrast(fg, bg) >= 4.5 then return fg end
+  local endpoint = contrast("#ffffff", bg) > contrast("#000000", bg) and 255 or 0
+  local r, g, b = rgb(fg)
+  for step = 1, 20 do
+    local t = step / 20
+    local hex = string.format("#%02x%02x%02x", math.floor(r + (endpoint - r) * t), math.floor(g + (endpoint - g) * t), math.floor(b + (endpoint - b) * t))
+    if contrast(hex, bg) >= 4.5 then return hex end
+  end
+  return fg
 end
 
 -- Resolve config into a flat role->hex table.
@@ -148,12 +180,21 @@ function M.colors(opts)
   if opts.colorblind then
     c = merge(c, CB_OVERLAY)
   end
+  if theme == "auto" then
+    for role, hex in pairs(c) do
+      if not role:match("_bg$") and role ~= "background" then
+        local bg = role == "menu_sel_fg" and c.menu_sel_bg or (role == "phase_fg" and c.phase_bg or c.background)
+        c[role] = readable(hex, bg)
+      end
+    end
+  end
   return c
 end
 
 -- Turn a resolved role table into concrete Vimmer* highlight-group specs.
 function M.build_groups(c)
   return {
+    VimmerNormal          = { fg = c.title, bg = c.background },
     VimmerTitle           = { bold = true, fg = c.title },
     VimmerTierBeginner    = { bold = true, fg = c.tier_beginner },
     VimmerTierWarrior     = { bold = true, fg = c.tier_warrior },

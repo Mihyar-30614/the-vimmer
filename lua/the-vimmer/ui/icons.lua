@@ -22,6 +22,7 @@ local SETS = {
     freeze   = "❄",
     xp       = "✦",
     warn     = "⚠",
+    fold_open = "▾", fold_closed = "▸",
   },
   ascii = {
     hud      = ">",
@@ -42,6 +43,7 @@ local SETS = {
     freeze   = "F",
     xp       = "+",
     warn     = "!",
+    fold_open = "v", fold_closed = ">",
   },
 }
 

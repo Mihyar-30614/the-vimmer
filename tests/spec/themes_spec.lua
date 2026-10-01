@@ -92,7 +92,7 @@ describe("themes.build_groups", function()
   it("covers exactly the groups highlights.setup applied", function()
     local groups = themes.build_groups(themes.colors({}))
     local expected = {
-      "VimmerTitle", "VimmerTierBeginner", "VimmerTierWarrior", "VimmerTierNinja",
+      "VimmerNormal", "VimmerTitle", "VimmerTierBeginner", "VimmerTierWarrior", "VimmerTierNinja",
       "VimmerTierGrandmaster", "VimmerCleared", "VimmerLocked", "VimmerSelected",
       "VimmerPanel", "VimmerSection", "VimmerBadge",
       "VimmerXP", "VimmerHP_high", "VimmerHP_mid", "VimmerHP_low", "VimmerWin",

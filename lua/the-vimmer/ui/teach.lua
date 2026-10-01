@@ -31,15 +31,15 @@ function M.open_teach(room, flow_opts_or_cb, maybe_cb)
     "VimmerSection")
   add(b.sep)
   if room.is_boss then
-    common.add_wrapped_prefixed(add, b.row, "  ⚔ BOSS: ", room.command:gsub("\n", " ↵ "), width, "VimmerBoss")
+    common.add_wrapped_prefixed(add, b.row, "  " .. require("the-vimmer.ui.icons").get("boss") .. " BOSS: ", room.command:gsub("\n", " ↵ "), width, "VimmerBoss")
     common.add_wrapped_prefixed(add, b.row, "  ", room.description:gsub("\n", " ↵ "), width, "VimmerTitle")
     add(b.sep)
     for i, phase in ipairs(room.phases) do
-      common.add_wrapped_prefixed(add, b.row, string.format("  PHASE %d: ", i), phase.tip or "", width, "VimmerCommand")
+      common.add_wrapped_prefixed(add, b.row, string.format("  PHASE %d: ", i), common.clean_title(phase.tip or ""), width, "VimmerCommand")
       if phase.goal and phase.goal ~= "" then
         common.add_wrapped_prefixed(add, b.row, "  GOAL:   ", phase.goal:gsub("\n", " ↵ "), width, "VimmerXP")
       end
-      common.add_wrapped_prefixed(add, b.row, "  BEFORE: ", phase.start_text:gsub("\n", " ↵ "), width, "VimmerLocked")
+      common.add_wrapped_prefixed(add, b.row, "  BEFORE: ", phase.start_text:gsub("\n", " ↵ "), width, "VimmerExample")
       common.add_wrapped_prefixed(add, b.row, "  AFTER:  ", phase.target_text:gsub("\n", " ↵ "), width, "VimmerCleared")
       if i < #room.phases then add(b.row("")) end
     end
@@ -71,7 +71,7 @@ function M.open_teach(room, flow_opts_or_cb, maybe_cb)
   end
   if any_alt then
     add(b.sep)
-    add(b.row("  Multiple valid key paths — scoring accepts alternates."), "VimmerTeachFoot")
+    add(b.row("  Different paths work; HP drops only after the key budget."), "VimmerTeachFoot")
   end
 
   if flow_opts.daily then
@@ -92,12 +92,18 @@ function M.open_teach(room, flow_opts_or_cb, maybe_cb)
   end
 
   add(b.sep)
+  common.add_wrapped_prefixed(add, b.row, "  ", "[P] Practice: no timer or HP loss. [R] Replay the keys. Ranked clears earn XP and unlock rooms.", width, "VimmerTeachTip")
+  add(b.sep)
   add(b.row(common.game_footer({
-    { "ENTER", "begin" }, { "R", "replay" }, { "Q", "close" },
+    { "RET", flow_opts.practice and "practice" or "begin" }, { "P", "try" }, { "Q", "close" },
   })), "VimmerTeachFoot")
   add(b.bot)
 
-  local buf, win = float.open_float(lines, width)
+  local buf, win
+  buf, win = float.open_float(lines, width, { on_resize = function()
+    if api.nvim_win_is_valid(win) then api.nvim_win_close(win, true) end
+    M.open_teach(room, flow_opts, on_begin)
+  end })
   float.apply_hl(buf, hls)
 
   for _, row in ipairs(diff_rows) do
@@ -123,10 +129,12 @@ function M.open_teach(room, flow_opts_or_cb, maybe_cb)
     end
   end
 
-  vim.keymap.set("n", "<CR>", function()
+  local function begin(practice)
     api.nvim_win_close(win, true)
-    require("the-vimmer.ui.transition").run("enter_play", on_begin)
-  end, { buffer = buf, nowait = true, silent = true })
+    require("the-vimmer.ui.transition").run("enter_play", function() on_begin(practice) end)
+  end
+  vim.keymap.set("n", "<CR>", function() begin(flow_opts.practice) end, { buffer = buf, nowait = true, silent = true })
+  vim.keymap.set("n", "p", function() begin(true) end, { buffer = buf, nowait = true, silent = true })
 
   vim.keymap.set("n", "r", function()
     require("the-vimmer.ui").open_key_replay(room, { phase_index = room.is_boss and 1 or nil })
